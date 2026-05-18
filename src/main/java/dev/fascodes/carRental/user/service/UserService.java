@@ -13,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -28,12 +29,15 @@ public class UserService {
         this.authenticationManager = authenticationManager;
     }
 
+    @Transactional
     public String register(RegisterRequest req){
         User user = new User();
         user.setRole(UserRole.USER);
         user.setUsername(req.getUsername());
         user.setEmail(req.getEmail());
         user.setPassword(passwordEncoder.encode(req.getPassword()));
+        userRepository.findByEmail(user.getEmail())
+                .ifPresent(u -> { throw new RuntimeException("Email already registered"); });
         userRepository.save(user);
 
         return "User registered";

@@ -47,7 +47,7 @@ CREATE TABLE "listings" (
 CREATE TABLE "users" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "username" varchar,
-  "email" varchar,
+  "email" varchar UNIQUE,
   "password" varchar,
   "role" user_role,
   "last_online" timestamp,
