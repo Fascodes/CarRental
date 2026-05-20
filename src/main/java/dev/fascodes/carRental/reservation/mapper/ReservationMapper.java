@@ -27,7 +27,6 @@ public class ReservationMapper {
 
     public ReservationResponse toResponse(Reservation reservation) {
         ReservationResponse response = new ReservationResponse();
-        response.setId(reservation.getId());
         response.setStatus(reservation.getStatus());
         response.setDateStart(reservation.getDateStart());
         response.setDateEnd(reservation.getDateEnd());

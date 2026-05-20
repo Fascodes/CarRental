@@ -1,13 +1,12 @@
 package dev.fascodes.carRental;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import org.junit.jupiter.api.Test;
+
 class CarRentalApplicationTests {
 
 	@Test
-	void contextLoads() {
-	}
+	void contextLoads() {}
+
 
 }
