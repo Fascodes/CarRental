@@ -13,7 +13,18 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
-
+  db-test:
+    image: postgres:16
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: carRentalTest
+      POSTGRES_USER: test
+    networks:
+      - pg-network
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 networks:
   pg-network:
