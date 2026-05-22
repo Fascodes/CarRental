@@ -79,8 +79,6 @@ class ReservationServiceTest {
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }
 
-    // --- confirmReservation ---
-
     @Test
     void confirmReservation_throwsNotFound_whenReservationDoesNotExist() {
         when(reservationRepository.findById(1L)).thenReturn(Optional.empty());
