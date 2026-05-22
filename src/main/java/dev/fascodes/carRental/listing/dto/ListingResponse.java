@@ -2,7 +2,9 @@ package dev.fascodes.carRental.listing.dto;
 
 import dev.fascodes.carRental.car.model.GearboxType;
 
-public class ListingResponse {
+import java.io.Serializable;
+
+public class ListingResponse implements Serializable {
     private Long id;
     private String title;
     private Integer price;
