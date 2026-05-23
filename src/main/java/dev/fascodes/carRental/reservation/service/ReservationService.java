@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @Service
 public class ReservationService {
 
@@ -84,5 +86,53 @@ public class ReservationService {
                 reservationId);
 
         return reservationMapper.toResponse(reservation);
+    }
+
+    @Transactional
+    public ReservationResponse patchStatusAdmin(Long reservationId, ReservationStatus status) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        reservation.setStatus(status);
+        return reservationMapper.toResponse(reservation);
+    }
+
+    @Transactional
+    public ReservationResponse cancelReservation(Long reservationId, String email) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        boolean isRenter = reservation.getRenter().getEmail().equals(email);
+        if (!isRenter) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (reservation.getStatus() != ReservationStatus.PENDING
+                && reservation.getStatus() != ReservationStatus.CONFIRMED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING or CONFIRMED reservations can be cancelled");
+        }
+        reservation.setStatus(ReservationStatus.CANCELLED);
+        return reservationMapper.toResponse(reservation);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getReservationsAsOwner(String email, ReservationStatus status) {
+        List<Reservation> reservations = status != null
+                ? reservationRepository.findByOwner_EmailAndStatusOrderByDateStartAsc(email, status)
+                : reservationRepository.findByOwner_EmailOrderByDateStartAsc(email);
+        return reservations.stream().map(reservationMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getReservationsAsRenter(String email, ReservationStatus status) {
+        List<Reservation> reservations = status != null
+                ? reservationRepository.findByRenter_EmailAndStatusOrderByDateStartAsc(email, status)
+                : reservationRepository.findByRenter_EmailOrderByDateStartAsc(email);
+        return reservations.stream().map(reservationMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getReservationsByUserAdmin(String userEmail, ReservationStatus status) {
+        List<Reservation> reservations = status != null
+                ? reservationRepository.findAllByUserEmailAndStatus(userEmail, status)
+                : reservationRepository.findAllByUserEmail(userEmail);
+        return reservations.stream().map(reservationMapper::toResponse).toList();
     }
 }

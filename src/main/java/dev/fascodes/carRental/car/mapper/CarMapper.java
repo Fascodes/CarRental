@@ -36,6 +36,7 @@ public class CarMapper {
 
     public CarResponse toCarResponse(Car car) {
         CarResponse response = new CarResponse();
+        response.setId(car.getId());
         response.setBrand(car.getBrand());
         response.setModel(car.getModel());
         response.setModelYear(car.getModelYear());
