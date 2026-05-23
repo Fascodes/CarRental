@@ -4,6 +4,7 @@ package dev.fascodes.carRental.common.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -37,7 +38,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-   public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request){
+    public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request){
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
         String reasonPhrase = status != null ? status.getReasonPhrase() : "Unknown";
         String message = (ex.getMessage() != null && !ex.getMessage().isBlank()) ? ex.getMessage() : "No message provided";
@@ -52,6 +53,19 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(ex.getStatusCode()).body(response);
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAuthorizationDenied(AuthorizationDeniedException ex, HttpServletRequest request) {
+        ApiErrorResponse response = new ApiErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                "Access denied",
+                request.getRequestURI(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(Exception.class)

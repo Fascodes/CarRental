@@ -3,6 +3,7 @@ package dev.fascodes.carRental.reservation.service;
 import dev.fascodes.carRental.listing.model.Listing;
 import dev.fascodes.carRental.listing.repository.ListingRepository;
 import dev.fascodes.carRental.reservation.dto.AddReservationRequest;
+import dev.fascodes.carRental.reservation.dto.ReservationResponse;
 import dev.fascodes.carRental.reservation.mapper.ReservationMapper;
 import dev.fascodes.carRental.reservation.model.Reservation;
 import dev.fascodes.carRental.reservation.model.ReservationStatus;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,6 +35,8 @@ class ReservationServiceTest {
     @Mock private ListingRepository listingRepository;
     @Mock private UserRepository userRepository;
     @InjectMocks private ReservationService reservationService;
+
+    // --- addReservation ---
 
     @Test
     void addReservation_throwsNotFound_whenListingDoesNotExist() {
@@ -78,6 +82,8 @@ class ReservationServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
     }
+
+    // --- confirmReservation ---
 
     @Test
     void confirmReservation_throwsNotFound_whenReservationDoesNotExist() {
@@ -170,5 +176,194 @@ class ReservationServiceTest {
 
         assertEquals(ReservationStatus.CONFIRMED, reservation.getStatus());
         verify(reservationRepository).cancelOverlappingPending(eq(1L), any(), any(), eq(1L));
+    }
+
+    // --- patchStatusAdmin ---
+
+    @Test
+    void patchStatusAdmin_throwsNotFound_whenReservationDoesNotExist() {
+        when(reservationRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> reservationService.patchStatusAdmin(1L, ReservationStatus.CONFIRMED));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
+    @Test
+    void patchStatusAdmin_setsStatus_whenReservationExists() {
+        Listing listing = new Listing();
+        listing.setId(1L);
+
+        Reservation reservation = new Reservation();
+        reservation.setListing(listing);
+        reservation.setStatus(ReservationStatus.PENDING);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationMapper.toResponse(reservation)).thenReturn(new ReservationResponse());
+
+        reservationService.patchStatusAdmin(1L, ReservationStatus.ACTIVE);
+
+        assertEquals(ReservationStatus.ACTIVE, reservation.getStatus());
+    }
+
+    // --- cancelReservation ---
+
+    @Test
+    void cancelReservation_throwsNotFound_whenReservationDoesNotExist() {
+        when(reservationRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> reservationService.cancelReservation(1L, "user@test.com"));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
+    @Test
+    void cancelReservation_throwsForbidden_whenCallerIsNotRenter() {
+        User renter = new User();
+        renter.setEmail("renter@test.com");
+
+        Reservation reservation = new Reservation();
+        reservation.setRenter(renter);
+        reservation.setStatus(ReservationStatus.PENDING);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> reservationService.cancelReservation(1L, "other@test.com"));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    void cancelReservation_throwsConflict_whenStatusIsNotCancellable() {
+        User renter = new User();
+        renter.setEmail("renter@test.com");
+
+        Reservation reservation = new Reservation();
+        reservation.setRenter(renter);
+        reservation.setStatus(ReservationStatus.COMPLETED);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> reservationService.cancelReservation(1L, "renter@test.com"));
+
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+    }
+
+    @Test
+    void cancelReservation_setsCancelled_whenRenterCancels() {
+        User renter = new User();
+        renter.setEmail("renter@test.com");
+
+        Listing listing = new Listing();
+        listing.setId(1L);
+
+        Reservation reservation = new Reservation();
+        reservation.setRenter(renter);
+        reservation.setStatus(ReservationStatus.PENDING);
+        reservation.setListing(listing);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationMapper.toResponse(reservation)).thenReturn(new ReservationResponse());
+
+        reservationService.cancelReservation(1L, "renter@test.com");
+
+        assertEquals(ReservationStatus.CANCELLED, reservation.getStatus());
+    }
+
+    @Test
+    void cancelReservation_setsCancelled_whenConfirmedReservationCancelled() {
+        User renter = new User();
+        renter.setEmail("renter@test.com");
+
+        Listing listing = new Listing();
+        listing.setId(1L);
+
+        Reservation reservation = new Reservation();
+        reservation.setRenter(renter);
+        reservation.setStatus(ReservationStatus.CONFIRMED);
+        reservation.setListing(listing);
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationMapper.toResponse(reservation)).thenReturn(new ReservationResponse());
+
+        reservationService.cancelReservation(1L, "renter@test.com");
+
+        assertEquals(ReservationStatus.CANCELLED, reservation.getStatus());
+    }
+
+    // --- getReservationsAsOwner ---
+
+    @Test
+    void getReservationsAsOwner_callsFilteredRepo_whenStatusProvided() {
+        when(reservationRepository.findByOwner_EmailAndStatusOrderByDateStartAsc("owner@test.com", ReservationStatus.PENDING))
+                .thenReturn(List.of());
+
+        reservationService.getReservationsAsOwner("owner@test.com", ReservationStatus.PENDING);
+
+        verify(reservationRepository).findByOwner_EmailAndStatusOrderByDateStartAsc("owner@test.com", ReservationStatus.PENDING);
+        verify(reservationRepository, never()).findByOwner_EmailOrderByDateStartAsc(any());
+    }
+
+    @Test
+    void getReservationsAsOwner_callsAllRepo_whenStatusIsNull() {
+        when(reservationRepository.findByOwner_EmailOrderByDateStartAsc("owner@test.com"))
+                .thenReturn(List.of());
+
+        reservationService.getReservationsAsOwner("owner@test.com", null);
+
+        verify(reservationRepository).findByOwner_EmailOrderByDateStartAsc("owner@test.com");
+        verify(reservationRepository, never()).findByOwner_EmailAndStatusOrderByDateStartAsc(any(), any());
+    }
+
+    // --- getReservationsAsRenter ---
+
+    @Test
+    void getReservationsAsRenter_callsFilteredRepo_whenStatusProvided() {
+        when(reservationRepository.findByRenter_EmailAndStatusOrderByDateStartAsc("renter@test.com", ReservationStatus.CONFIRMED))
+                .thenReturn(List.of());
+
+        reservationService.getReservationsAsRenter("renter@test.com", ReservationStatus.CONFIRMED);
+
+        verify(reservationRepository).findByRenter_EmailAndStatusOrderByDateStartAsc("renter@test.com", ReservationStatus.CONFIRMED);
+        verify(reservationRepository, never()).findByRenter_EmailOrderByDateStartAsc(any());
+    }
+
+    @Test
+    void getReservationsAsRenter_callsAllRepo_whenStatusIsNull() {
+        when(reservationRepository.findByRenter_EmailOrderByDateStartAsc("renter@test.com"))
+                .thenReturn(List.of());
+
+        reservationService.getReservationsAsRenter("renter@test.com", null);
+
+        verify(reservationRepository).findByRenter_EmailOrderByDateStartAsc("renter@test.com");
+        verify(reservationRepository, never()).findByRenter_EmailAndStatusOrderByDateStartAsc(any(), any());
+    }
+
+    // --- getReservationsByUserAdmin ---
+
+    @Test
+    void getReservationsByUserAdmin_callsFilteredRepo_whenStatusProvided() {
+        when(reservationRepository.findAllByUserEmailAndStatus("user@test.com", ReservationStatus.PENDING))
+                .thenReturn(List.of());
+
+        reservationService.getReservationsByUserAdmin("user@test.com", ReservationStatus.PENDING);
+
+        verify(reservationRepository).findAllByUserEmailAndStatus("user@test.com", ReservationStatus.PENDING);
+        verify(reservationRepository, never()).findAllByUserEmail(any());
+    }
+
+    @Test
+    void getReservationsByUserAdmin_callsAllRepo_whenStatusIsNull() {
+        when(reservationRepository.findAllByUserEmail("user@test.com"))
+                .thenReturn(List.of());
+
+        reservationService.getReservationsByUserAdmin("user@test.com", null);
+
+        verify(reservationRepository).findAllByUserEmail("user@test.com");
+        verify(reservationRepository, never()).findAllByUserEmailAndStatus(any(), any());
     }
 }
