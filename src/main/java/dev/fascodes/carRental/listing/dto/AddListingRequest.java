@@ -1,9 +1,15 @@
 package dev.fascodes.carRental.listing.dto;
 
+import jakarta.validation.constraints.NotNull;
+
 public class AddListingRequest {
+    @NotNull
     private Long carId;
+    @NotNull
     private Integer price;
+    @NotNull
     private String title;
+    @NotNull
     private String body;
 
     public Long getCarId() { return carId; }

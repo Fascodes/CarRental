@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
@@ -23,4 +24,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                                   @Param("dateStart") LocalDateTime dateStart,
                                   @Param("dateEnd") LocalDateTime dateEnd,
                                   @Param("excludeId") Long excludeId);
+
+    boolean existsByListingIdAndStatusIn(Long listingId, List<ReservationStatus> pending);
 }
