@@ -20,4 +20,7 @@ public interface ListingRepository extends JpaRepository<Listing, Long>, JpaSpec
 
     @EntityGraph(attributePaths = {"car", "user"})
     Page<Listing> findAll(Specification<Listing> spec, Pageable pageable);
+
+    boolean existsByCarId(Long carId);
+
 }

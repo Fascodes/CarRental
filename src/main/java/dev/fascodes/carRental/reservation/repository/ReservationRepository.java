@@ -25,5 +25,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                                   @Param("dateEnd") LocalDateTime dateEnd,
                                   @Param("excludeId") Long excludeId);
 
-    boolean existsByListingIdAndStatusIn(Long listingId, List<ReservationStatus> pending);
+    boolean existsByListingIdAndStatusIn(Long listingId, List<ReservationStatus> statuses);
+
+    List<Reservation> findByOwner_EmailOrderByDateStartAsc(String email);
+    List<Reservation> findByOwner_EmailAndStatusOrderByDateStartAsc(String email, ReservationStatus status);
+
+    List<Reservation> findByRenter_EmailOrderByDateStartAsc(String email);
+    List<Reservation> findByRenter_EmailAndStatusOrderByDateStartAsc(String email, ReservationStatus status);
+
+    @Query("SELECT r FROM Reservation r WHERE r.owner.email = :email OR r.renter.email = :email ORDER BY r.dateStart ASC")
+    List<Reservation> findAllByUserEmail(@Param("email") String email);
+
+    @Query("SELECT r FROM Reservation r WHERE (r.owner.email = :email OR r.renter.email = :email) AND r.status = :status ORDER BY r.dateStart ASC")
+    List<Reservation> findAllByUserEmailAndStatus(@Param("email") String email, @Param("status") ReservationStatus status);
 }

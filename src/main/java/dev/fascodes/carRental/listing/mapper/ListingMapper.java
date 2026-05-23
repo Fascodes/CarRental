@@ -4,6 +4,8 @@ import dev.fascodes.carRental.listing.dto.ListingResponse;
 import dev.fascodes.carRental.listing.model.Listing;
 import org.springframework.stereotype.Component;
 
+
+// TODO: this mapper could be combined with AddListingMapper into one ListingMapper with all combined methods
 @Component
 public class ListingMapper {
 
