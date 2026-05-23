@@ -1,6 +1,6 @@
 package dev.fascodes.carRental.car.service;
 
-import dev.fascodes.carRental.car.mapper.AddCarMapper;
+import dev.fascodes.carRental.car.mapper.CarMapper;
 import dev.fascodes.carRental.car.model.Car;
 import dev.fascodes.carRental.car.repository.CarRepository;
 import dev.fascodes.carRental.common.utility.JwtUtil;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CarServiceTest {
 
-    @Mock private AddCarMapper addCarMapper;
+    @Mock private CarMapper carMapper;
     @Mock private JwtUtil jwtUtil;
     @Mock private UserRepository userRepository;
     @Mock private CarRepository carRepository;
