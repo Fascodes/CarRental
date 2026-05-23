@@ -5,14 +5,18 @@ import dev.fascodes.carRental.car.repository.CarRepository;
 import dev.fascodes.carRental.listing.dto.AddListingRequest;
 import dev.fascodes.carRental.listing.dto.AddListingResponse;
 import dev.fascodes.carRental.listing.dto.ListingResponse;
+import dev.fascodes.carRental.listing.dto.UpdateListingRequest;
 import dev.fascodes.carRental.listing.mapper.AddListingMapper;
 import dev.fascodes.carRental.listing.mapper.ListingMapper;
 import dev.fascodes.carRental.listing.model.Listing;
 import dev.fascodes.carRental.listing.model.ListingStatus;
 import dev.fascodes.carRental.listing.repository.ListingRepository;
 import dev.fascodes.carRental.listing.specification.ListingSpecification;
+import dev.fascodes.carRental.reservation.model.ReservationStatus;
+import dev.fascodes.carRental.reservation.repository.ReservationRepository;
 import dev.fascodes.carRental.user.model.User;
 import dev.fascodes.carRental.user.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @Service
 public class ListingService {
     private final AddListingMapper addListingMapper;
@@ -29,15 +35,17 @@ public class ListingService {
     private final ListingRepository listingRepository;
     private final CarRepository carRepository;
     private final UserRepository userRepository;
+    private final ReservationRepository reservationRepository;
 
     public ListingService(AddListingMapper addListingMapper, ListingMapper listingMapper,
                           ListingRepository listingRepository, CarRepository carRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository, ReservationRepository reservationRepository) {
         this.addListingMapper = addListingMapper;
         this.listingMapper = listingMapper;
         this.listingRepository = listingRepository;
         this.carRepository = carRepository;
         this.userRepository = userRepository;
+        this.reservationRepository = reservationRepository;
     }
 
     @Transactional
@@ -60,6 +68,9 @@ public class ListingService {
         if (!listing.getUser().getEmail().equals(email)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
+        boolean hasActive = reservationRepository.existsByListingIdAndStatusIn(
+                listingId, List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED));
+        if (hasActive) throw new ResponseStatusException(HttpStatus.CONFLICT, "Listing has active reservations");
         listingRepository.delete(listing);
     }
 
@@ -71,7 +82,7 @@ public class ListingService {
         return listingRepository.findAll(spec, pageable).map(listingMapper::toResponse);
     }
 
-    @Cacheable("listing")
+    @Cacheable(value = "listing", key = "#listingId", condition = "#result.status.name() == 'ACTIVE'")
     @Transactional(readOnly = true)
     public ListingResponse getListing(Long listingId, String email) {
         Listing listing = listingRepository.findById(listingId)
@@ -79,6 +90,29 @@ public class ListingService {
         if (listing.getStatus() == ListingStatus.INACTIVE && !listing.getUser().getEmail().equals(email)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
+        return listingMapper.toResponse(listing);
+    }
+
+    @CacheEvict(value = "listing", key = "#listingId")
+    @Transactional
+    public ListingResponse updateListing(Long listingId, UpdateListingRequest request, String email) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!listing.getUser().getEmail().equals(email)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        if(request.getCarId() != null){
+            Car car = carRepository.findById(request.getCarId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Car not found"));
+            if (!car.getOwner().getEmail().equals(email)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Car not found");
+            }
+            listing.setCar(car);
+        }
+        if (request.getTitle() != null) listing.setTitle(request.getTitle());
+        if (request.getPrice() != null) listing.setPrice(request.getPrice());
+        if (request.getBody() != null) listing.setBody(request.getBody());
+        if (request.getStatus() != null) listing.setStatus(request.getStatus());
         return listingMapper.toResponse(listing);
     }
 }

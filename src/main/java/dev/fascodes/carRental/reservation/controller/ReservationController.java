@@ -28,4 +28,7 @@ public class ReservationController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(reservationService.confirmReservation(id, email));
     }
+
+
+    // TODO: PUT/PATCH endpoint only admin side
 }

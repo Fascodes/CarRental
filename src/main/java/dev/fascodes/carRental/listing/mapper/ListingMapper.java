@@ -16,6 +16,7 @@ public class ListingMapper {
         response.setModel(listing.getCar().getModel());
         response.setModelYear(listing.getCar().getModelYear());
         response.setGearboxType(listing.getCar().getGearboxType());
+        response.setStatus(listing.getStatus());
         return response;
     }
 }

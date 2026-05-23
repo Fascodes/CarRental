@@ -3,6 +3,7 @@ package dev.fascodes.carRental.listing.controller;
 import dev.fascodes.carRental.listing.dto.AddListingRequest;
 import dev.fascodes.carRental.listing.dto.AddListingResponse;
 import dev.fascodes.carRental.listing.dto.ListingResponse;
+import dev.fascodes.carRental.listing.dto.UpdateListingRequest;
 import dev.fascodes.carRental.listing.service.ListingService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -20,9 +21,10 @@ public class ListingController {
         this.listingService = listingService;
     }
 
-    @Valid
+
+    // TODO: When adding scheduling into the system - listings ACTIVE for 30 days maximum unless extended by owner
     @PostMapping("/add")
-    public ResponseEntity<AddListingResponse> addListing(@RequestBody AddListingRequest request) {
+    public ResponseEntity<AddListingResponse> addListing(@Valid @RequestBody AddListingRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(listingService.addListing(request, email));
     }
@@ -46,5 +48,12 @@ public class ListingController {
     public ResponseEntity<ListingResponse> getListing(@PathVariable Long id) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(listingService.getListing(id, email));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ListingResponse> updateListing(@PathVariable Long id,
+                                                         @RequestBody UpdateListingRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(listingService.updateListing(id, request, email));
     }
 }
