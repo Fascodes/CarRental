@@ -8,3 +8,5 @@ import org.springframework.context.annotation.Configuration;
 @EnableCaching
 public class CacheConfig {
 }
+
+// TODO: Change the caching to Redis instead of current Spring Boot native
