@@ -67,3 +67,7 @@ public class SecurityConfig {
         return http.build();
     }
 }
+
+// TODO: Add rate limiting for endpoints
+// TODO: Add retry limit (3 per 1 minute) for auth
+// TODO: use AuthenticationPrincipal instead of getContext
