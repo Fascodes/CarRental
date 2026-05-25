@@ -1,6 +1,6 @@
 package dev.fascodes.carRental.reservation.controller;
 
-import dev.fascodes.carRental.common.config.SecurityConfig;
+import dev.fascodes.carRental.common.security.WithMockAuthenticatedUser;
 import dev.fascodes.carRental.reservation.dto.ReservationResponse;
 import dev.fascodes.carRental.reservation.model.ReservationStatus;
 import dev.fascodes.carRental.reservation.service.ReservationService;
@@ -11,7 +11,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -30,11 +29,10 @@ class ReservationControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean ReservationService reservationService;
 
-    // --- PATCH /{id}/cancel ---
-
+    // --- PATCH /cancel/{id} ---
 
     @Test
-    @WithMockUser
+    @WithMockAuthenticatedUser
     void cancelReservation_returns200_whenAuthenticated() throws Exception {
         when(reservationService.cancelReservation(anyLong(), any())).thenReturn(new ReservationResponse());
 
@@ -45,7 +43,7 @@ class ReservationControllerTest {
     // --- PATCH /{id}/admin ---
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockAuthenticatedUser(role = "USER")
     void patchStatus_returns403_whenUserIsNotAdmin() throws Exception {
         mockMvc.perform(patch("/api/reservation/1/admin")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -54,7 +52,7 @@ class ReservationControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockAuthenticatedUser(role = "ADMIN")
     void patchStatus_returns200_whenUserIsAdmin() throws Exception {
         when(reservationService.patchStatusAdmin(anyLong(), any())).thenReturn(new ReservationResponse());
 
@@ -66,9 +64,8 @@ class ReservationControllerTest {
 
     // --- GET /my/owner ---
 
-
     @Test
-    @WithMockUser
+    @WithMockAuthenticatedUser
     void getReservationsAsOwner_returns200_whenAuthenticated() throws Exception {
         when(reservationService.getReservationsAsOwner(any(), any())).thenReturn(List.of());
 
@@ -77,7 +74,7 @@ class ReservationControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockAuthenticatedUser
     void getReservationsAsOwner_returns200_withStatusFilter() throws Exception {
         when(reservationService.getReservationsAsOwner(any(), eq(ReservationStatus.PENDING)))
                 .thenReturn(List.of());
@@ -89,7 +86,7 @@ class ReservationControllerTest {
     // --- GET /my/renter ---
 
     @Test
-    @WithMockUser
+    @WithMockAuthenticatedUser
     void getReservationsAsRenter_returns200_whenAuthenticated() throws Exception {
         when(reservationService.getReservationsAsRenter(any(), any())).thenReturn(List.of());
 
@@ -99,16 +96,15 @@ class ReservationControllerTest {
 
     // --- GET /admin ---
 
-
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockAuthenticatedUser(role = "USER")
     void getReservationsByUser_returns403_whenUserIsNotAdmin() throws Exception {
         mockMvc.perform(get("/api/reservation/admin?email=user@test.com"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockAuthenticatedUser(role = "ADMIN")
     void getReservationsByUser_returns200_whenUserIsAdmin() throws Exception {
         when(reservationService.getReservationsByUserAdmin(any(), any())).thenReturn(List.of());
 

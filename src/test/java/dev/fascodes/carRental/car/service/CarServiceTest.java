@@ -102,7 +102,7 @@ class CarServiceTest {
         when(carRepository.findById(1L)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> carService.getCar(1L));
+                () -> carService.getCar(1L, any()));
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }

@@ -53,9 +53,10 @@ public class CarService {
     }
 
     @Transactional(readOnly = true)
-    public CarDetailResponse getCar(Long carId) {
+    public CarDetailResponse getCar(Long carId, String email) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if(!car.getOwner().getEmail().equals(email)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         return carMapper.toCarDetailResponse(car);
     }
 

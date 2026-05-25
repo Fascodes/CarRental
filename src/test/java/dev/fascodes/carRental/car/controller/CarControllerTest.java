@@ -9,7 +9,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+import dev.fascodes.carRental.common.security.WithMockAuthenticatedUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -35,9 +35,9 @@ class CarControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockAuthenticatedUser
     void getCar_returns200_whenAuthenticated() throws Exception {
-        when(carService.getCar(1L)).thenReturn(new CarDetailResponse());
+        when(carService.getCar(anyLong(), any())).thenReturn(new CarDetailResponse());
 
         mockMvc.perform(get("/api/car/1"))
                 .andExpect(status().isOk());
@@ -54,7 +54,7 @@ class CarControllerTest {
     }
 
     @Test
-    @WithMockUser
+    @WithMockAuthenticatedUser
     void patchCar_returns200_whenAuthenticated() throws Exception {
         when(carService.patchCar(anyLong(), any(), any())).thenReturn(new CarResponse());
 
@@ -75,7 +75,7 @@ class CarControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
+    @WithMockAuthenticatedUser(role = "USER")
     void patchCarAdmin_returns403_whenUserIsNotAdmin() throws Exception {
         mockMvc.perform(patch("/api/car/1/admin")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -84,7 +84,7 @@ class CarControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockAuthenticatedUser(role = "ADMIN")
     void patchCarAdmin_returns200_whenUserIsAdmin() throws Exception {
         when(carService.patchCarAdmin(anyLong(), any())).thenReturn(new CarResponse());
 
