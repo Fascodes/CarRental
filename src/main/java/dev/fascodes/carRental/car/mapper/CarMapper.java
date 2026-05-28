@@ -46,11 +46,13 @@ public class CarMapper {
 
     public CarDetailResponse toCarDetailResponse(Car car) {
         CarDetailResponse response = new CarDetailResponse();
+        response.setId(car.getId());
         response.setBrand(car.getBrand());
         response.setModel(car.getModel());
         response.setModelYear(car.getModelYear());
         response.setGearboxType(car.getGearboxType());
         response.setSeatNumber(car.getSeatNumber());
+        response.setVin(car.getVin());
         response.setHorsePower(car.getHorsePower());
         response.setAvgLiters(car.getAvgLiters());
         response.setInfo(car.getInfo());

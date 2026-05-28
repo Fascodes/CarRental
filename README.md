@@ -90,7 +90,7 @@ All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL na
 **DTOs:**
 - `AddCarRequest` — full car fields with `@Valid`
 - `AddCarResponse` — confirmation after creation
-- `CarDetailResponse` — brand, model, modelYear, gearboxType, seatNumber, horsePower, avgLiters, info (NO vin, NO id)
+- `CarDetailResponse` — id, brand, model, modelYear, gearboxType, vin, seatNumber, horsePower, avgLiters, info
 - `CarResponse` — brand, model, modelYear, gearboxType (brief confirmation)
 - `PatchCarRequest` — all nullable; `gearboxType` is direct `GearboxType` enum
 

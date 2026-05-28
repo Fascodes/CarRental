@@ -35,6 +35,12 @@ public class ReservationController {
         return ResponseEntity.ok(reservationService.confirmReservation(id, user.email()));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ReservationResponse> getReservation(@PathVariable Long id,
+                                                              @AuthenticationPrincipal AuthenticatedUser user) {
+        return ResponseEntity.ok(reservationService.getReservation(id, user.email()));
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/admin")
     public ResponseEntity<ReservationResponse> patchStatus(@PathVariable Long id,

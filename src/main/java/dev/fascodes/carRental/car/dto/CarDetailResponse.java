@@ -5,6 +5,7 @@ import dev.fascodes.carRental.car.model.GearboxType;
 import java.math.BigDecimal;
 
 public class CarDetailResponse {
+    private Long id;
     private String brand;
     private String model;
     private Integer modelYear;
@@ -12,6 +13,7 @@ public class CarDetailResponse {
     private Integer seatNumber;
     private Integer horsePower;
     private BigDecimal avgLiters;
+    private String vin;
     private String info;
 
     public String getBrand() { return brand; }
@@ -35,6 +37,17 @@ public class CarDetailResponse {
     public BigDecimal getAvgLiters() { return avgLiters; }
     public void setAvgLiters(BigDecimal avgLiters) { this.avgLiters = avgLiters; }
 
+    public String getVin() { return vin; }
+    public void setVin(String vin) { this.vin = vin; }
+
     public String getInfo() { return info; }
     public void setInfo(String info) { this.info = info; }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 }

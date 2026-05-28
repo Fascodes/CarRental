@@ -8,7 +8,6 @@ import dev.fascodes.carRental.car.dto.PatchCarRequest;
 import dev.fascodes.carRental.car.mapper.CarMapper;
 import dev.fascodes.carRental.car.model.Car;
 import dev.fascodes.carRental.car.repository.CarRepository;
-import dev.fascodes.carRental.common.utility.JwtUtil;
 import dev.fascodes.carRental.listing.repository.ListingRepository;
 import dev.fascodes.carRental.user.model.User;
 import dev.fascodes.carRental.user.repository.UserRepository;
@@ -16,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @Service
 public class CarService {
@@ -53,11 +54,17 @@ public class CarService {
     }
 
     @Transactional(readOnly = true)
-    public CarDetailResponse getCar(Long carId, String email) {
+    public CarDetailResponse getCar(Long carId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        if(!car.getOwner().getEmail().equals(email)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         return carMapper.toCarDetailResponse(car);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CarDetailResponse> getMyCars(String email) {
+        return carRepository.findByOwner_Email(email).stream()
+                .map(carMapper::toCarDetailResponse)
+                .toList();
     }
 
     @Transactional

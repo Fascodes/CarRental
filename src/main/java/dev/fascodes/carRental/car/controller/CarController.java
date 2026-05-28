@@ -14,6 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/car")
 public class CarController {
@@ -38,10 +40,14 @@ public class CarController {
     }
 
 
+    @GetMapping("/my")
+    public ResponseEntity<List<CarDetailResponse>> getMyCars(@AuthenticationPrincipal AuthenticatedUser user) {
+        return ResponseEntity.ok(carService.getMyCars(user.email()));
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<CarDetailResponse> getCar(@PathVariable Long id,
-                                                    @AuthenticationPrincipal AuthenticatedUser user) {
-        return ResponseEntity.ok(carService.getCar(id, user.email()));
+    public ResponseEntity<CarDetailResponse> getCar(@PathVariable Long id) {
+        return ResponseEntity.ok(carService.getCar(id));
     }
 
     @PatchMapping("/{id}")

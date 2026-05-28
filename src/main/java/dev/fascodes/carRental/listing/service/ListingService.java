@@ -93,6 +93,14 @@ public class ListingService {
         return listingMapper.toResponse(listing);
     }
 
+    @Transactional(readOnly = true)
+    public List<ListingResponse> getMyListings(String email, ListingStatus status) {
+        List<Listing> listings = status != null
+                ? listingRepository.findByUser_EmailAndStatus(email, status)
+                : listingRepository.findByUser_Email(email);
+        return listings.stream().map(listingMapper::toResponse).toList();
+    }
+
     @CacheEvict(value = "listing", key = "#listingId")
     @Transactional
     public ListingResponse updateListing(Long listingId, UpdateListingRequest request, String email) {

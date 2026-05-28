@@ -88,6 +88,18 @@ public class ReservationService {
         return reservationMapper.toResponse(reservation);
     }
 
+    @Transactional(readOnly = true)
+    public ReservationResponse getReservation(Long reservationId, String email) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        boolean isParticipant = reservation.getOwner().getEmail().equals(email)
+                || reservation.getRenter().getEmail().equals(email);
+        if (!isParticipant) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        return reservationMapper.toResponse(reservation);
+    }
+
     @Transactional
     public ReservationResponse patchStatusAdmin(Long reservationId, ReservationStatus status) {
         Reservation reservation = reservationRepository.findById(reservationId)
