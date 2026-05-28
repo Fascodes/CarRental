@@ -16,20 +16,28 @@ Spring Boot 4.0.6 / Java 25 / PostgreSQL car rental backend. JWT-stateless auth,
 | Lombok | `@Getter`, `@Setter`, `@NoArgsConstructor` on entities |
 | Tests | JUnit 5 + Mockito + MockMvc + `@SpringBootTest` |
 
-## Package Structure
+## Project Layout
 
 ```
-dev.fascodes.carRental
-├── common
-│   ├── config/       SecurityConfig, CacheConfig
-│   ├── exception/    GlobalExceptionHandler, ApiErrorResponse
-│   └── security/     JwtAuthenticationFilter
-├── user/             User, UserRole, UserPrincipal, AuthController, UserService
-├── car/              Car, GearboxType, CarController, CarService, CarMapper
-├── listing/          Listing, ListingStatus, ListingController, ListingService
-│   └── specification/ ListingSpecification (JPA Specs for filter)
-└── reservation/      Reservation, ReservationStatus, ReservationController, ReservationService
+carRental/
+├── backend/          Spring Boot application (Maven)
+│   └── src/main/java/dev/fascodes/carRental/
+│       ├── common/
+│       │   ├── config/       SecurityConfig, CacheConfig
+│       │   ├── exception/    GlobalExceptionHandler, ApiErrorResponse
+│       │   ├── security/     JwtAuthenticationFilter, AuthenticatedUser (record)
+│       │   └── utility/      JwtUtil
+│       ├── user/             User, UserRole, UserPrincipal, AuthController, UserService
+│       ├── car/              Car, GearboxType, CarController, CarService, CarMapper
+│       ├── listing/          Listing, ListingStatus, ListingController, ListingService
+│       │   └── specification/ ListingSpecification (JPA Specs for filter)
+│       ├── reservation/      Reservation, ReservationStatus, ReservationController, ReservationService
+│       └── notification/     (empty — reserved for future use)
+├── docker/           (empty — reserved for Docker configs)
+└── README.md
 ```
+
+**`AuthenticatedUser`** is a record `(String email, String role)` injected via `@AuthenticationPrincipal` in all controllers. All controllers use this pattern — not `SecurityContextHolder` directly.
 
 ## Domain Model
 
@@ -68,7 +76,7 @@ All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL na
 - `@EnableMethodSecurity` + `@PreAuthorize("hasRole('ADMIN')")` for admin-only endpoints
 - `UserPrincipal` uses `ROLE_` prefix, so `hasRole('ADMIN')` matches `ROLE_ADMIN`
 - Auth errors: 401 via `authenticationEntryPoint → response.sendError(SC_UNAUTHORIZED)`
-- Email read pattern in controllers: `SecurityContextHolder.getContext().getAuthentication().getName()`
+- Controllers inject caller via `@AuthenticationPrincipal AuthenticatedUser user` → `user.email()`
 
 ## API Endpoints
 
@@ -83,7 +91,8 @@ All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL na
 |---|---|---|---|---|
 | POST | `/add` | Authenticated | `AddCarResponse` | Owner = authenticated user |
 | DELETE | `/{id}` | Owner | 204 | NOT_FOUND if not owner; 409 if car has any listing |
-| GET | `/{id}` | Authenticated | `CarDetailResponse` | Client-facing view (no VIN, no id) |
+| GET | `/my` | Authenticated | `List<CarDetailResponse>` | All cars owned by caller |
+| GET | `/{id}` | Authenticated | `CarDetailResponse` | No ownership check, public car detail |
 | PATCH | `/{id}` | Owner | `CarResponse` | NOT_FOUND if not owner; nullable patch |
 | PATCH | `/{id}/admin` | ADMIN | `CarResponse` | No ownership check; cannot change owner |
 
@@ -104,12 +113,13 @@ All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL na
 |---|---|---|---|---|
 | POST | `/add` | Authenticated | `AddListingResponse` | Car must belong to calling user |
 | DELETE | `/{id}` | Owner | 204 | 403 if not owner; 409 if PENDING/CONFIRMED reservations exist |
+| GET | `/my` | Authenticated | `List<ListingResponse>` | Own listings; optional `?status=` filter |
 | GET | `/filter` | Authenticated | `Page<ListingResponse>` | Params: `brand`, `priceMax`, `Pageable` |
 | GET | `/{id}` | Authenticated | `ListingResponse` | INACTIVE listings: NOT_FOUND unless owner |
 | PATCH | `/{id}` | Owner | `ListingResponse` | NOT_FOUND if not owner; nullable patch |
 
 **Caching:**
-- `getListing` → `@Cacheable(value="listing", key="#listingId", condition="#result.status.name()=='ACTIVE'")`
+- `getListing` → `@Cacheable(value="listing", key="#listingId", unless="#result.status.name()!='ACTIVE'")`
 - `updateListing` → `@CacheEvict(value="listing", key="#listingId")`
 - Cache: `ConcurrentMapCacheManager("listing")` in `CacheConfig`
 
@@ -129,6 +139,7 @@ TODO: listings ACTIVE for 30 days maximum (scheduling not yet implemented)
 | POST | `/{id}/confirm` | Owner | `ReservationResponse` | Pessimistic lock; cancels overlapping PENDING |
 | PATCH | `/{id}/admin` | ADMIN | `ReservationResponse` | Set any status, no ownership check |
 | PATCH | `/cancel/{id}` | Renter only | `ReservationResponse` | 403 if not renter; 409 if not PENDING/CONFIRMED |
+| GET | `/{id}` | Owner or Renter | `ReservationResponse` | 403 if caller is neither owner nor renter |
 | GET | `/my/owner` | Authenticated | `List<ReservationResponse>` | Optional `?status=` param |
 | GET | `/my/renter` | Authenticated | `List<ReservationResponse>` | Optional `?status=` param |
 | GET | `/admin` | ADMIN | `List<ReservationResponse>` | Required `?email=`, optional `?status=` |
@@ -174,9 +185,15 @@ All tests require Docker test DB on port 5433 (db-test container).
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-// + @MockitoBean [Service] + @WithMockUser / @WithMockUser(roles="ADMIN")
-// Requires @Import(SecurityConfig.class) if not auto-loaded
+// + @MockitoBean [Service]
+// Use @WithMockAuthenticatedUser (custom annotation) — injects AuthenticatedUser principal
+// Use @WithMockAuthenticatedUser(role="ADMIN") for admin endpoints
+// @WithMockUser does NOT work here because controllers use @AuthenticationPrincipal AuthenticatedUser
 ```
+
+**`@WithMockAuthenticatedUser`** — custom test annotation in `common/security/`:
+- Sets `AuthenticatedUser(email, role)` as principal with `ROLE_<role>` authority
+- Default: `email="user@test.com"`, `role="USER"`
 
 **Unit test pattern:**
 ```java
@@ -191,7 +208,7 @@ All tests require Docker test DB on port 5433 (db-test container).
 - **Ownership in cancel**: only renter can cancel; owner has no cancel path (admin `patchStatusAdmin` covers edge cases)
 - **Listing delete guard**: blocks on PENDING or CONFIRMED reservations; ACTIVE/CANCELLED/COMPLETED are ignored
 - **Car delete guard**: blocks on ANY listing (status irrelevant); no cascade implemented yet
-- **VIN excluded** from client-facing `CarDetailResponse` (sensitive, insurance/fraud risk)
+- **VIN included** in `CarDetailResponse` (was excluded earlier, added back)
 - **No owner change**: `patchCarAdmin` applies only car fields; `ownerId` is never touched
 
 ## Open TODOs (in code)
