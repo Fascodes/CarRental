@@ -34,6 +34,8 @@ public class ReservationMapper {
         response.setStatus(reservation.getStatus());
         response.setDateStart(reservation.getDateStart());
         response.setDateEnd(reservation.getDateEnd());
+        response.setOwnerUsername(reservation.getOwner().getUsername());
+        response.setRenterUsername(reservation.getRenter().getUsername());
         return response;
     }
 }

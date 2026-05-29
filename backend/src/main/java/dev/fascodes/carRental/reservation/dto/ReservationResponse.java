@@ -12,6 +12,8 @@ public class ReservationResponse {
     private ReservationStatus status;
     private LocalDateTime dateStart;
     private LocalDateTime dateEnd;
+    private String ownerUsername;
+    private String renterUsername;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -33,4 +35,10 @@ public class ReservationResponse {
 
     public LocalDateTime getDateEnd() { return dateEnd; }
     public void setDateEnd(LocalDateTime dateEnd) { this.dateEnd = dateEnd; }
+
+    public String getOwnerUsername() { return ownerUsername; }
+    public void setOwnerUsername(String ownerUsername) { this.ownerUsername = ownerUsername; }
+
+    public String getRenterUsername() { return renterUsername; }
+    public void setRenterUsername(String renterUsername) { this.renterUsername = renterUsername; }
 }
