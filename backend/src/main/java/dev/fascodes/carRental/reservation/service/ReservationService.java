@@ -79,8 +79,18 @@ public class ReservationService {
         listingRepository.findByIdWithLock(reservation.getListing().getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
+        // Re-read after acquiring the lock — another thread may have cancelled this reservation
+        reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (reservation.getStatus() != ReservationStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation is no longer PENDING");
+        }
+
         boolean hasConflict = reservationRepository.existsByListingIdAndStatusAndDateStartLessThanAndDateEndGreaterThan(
                 reservation.getListing().getId(), ReservationStatus.CONFIRMED,
+                reservation.getDateEnd(), reservation.getDateStart()) ||
+                reservationRepository.existsByListingIdAndStatusAndDateStartLessThanAndDateEndGreaterThan(
+                reservation.getListing().getId(), ReservationStatus.RENTER_CONFIRMED,
                 reservation.getDateEnd(), reservation.getDateStart());
 
         if (hasConflict) {

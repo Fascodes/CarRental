@@ -3,6 +3,7 @@ package dev.fascodes.carRental.listing.service;
 import dev.fascodes.carRental.car.model.Car;
 import dev.fascodes.carRental.car.repository.CarRepository;
 import dev.fascodes.carRental.listing.dto.AddListingRequest;
+import dev.fascodes.carRental.listing.dto.ListingDetailResponse;
 import dev.fascodes.carRental.listing.dto.ListingResponse;
 import dev.fascodes.carRental.listing.dto.UpdateListingRequest;
 import dev.fascodes.carRental.listing.mapper.AddListingMapper;
@@ -175,7 +176,7 @@ class ListingServiceTest {
     }
 
     @Test
-    void getListing_returnsResponse_whenInactiveAndCallerIsOwner() {
+    void getListing_returnsDetailResponse_whenInactiveAndCallerIsOwner() {
         User owner = new User();
         owner.setEmail("owner@test.com");
 
@@ -184,15 +185,15 @@ class ListingServiceTest {
         listing.setStatus(ListingStatus.INACTIVE);
 
         when(listingRepository.findById(1L)).thenReturn(Optional.of(listing));
-        when(listingMapper.toResponse(listing)).thenReturn(new ListingResponse());
+        when(listingMapper.toDetailResponse(listing)).thenReturn(new ListingDetailResponse());
 
         listingService.getListing(1L, "owner@test.com");
 
-        verify(listingMapper).toResponse(listing);
+        verify(listingMapper).toDetailResponse(listing);
     }
 
     @Test
-    void getListing_returnsResponse_whenActiveRegardlessOfCaller() {
+    void getListing_returnsDetailResponse_whenActiveRegardlessOfCaller() {
         User owner = new User();
         owner.setEmail("owner@test.com");
 
@@ -201,11 +202,11 @@ class ListingServiceTest {
         listing.setStatus(ListingStatus.ACTIVE);
 
         when(listingRepository.findById(1L)).thenReturn(Optional.of(listing));
-        when(listingMapper.toResponse(listing)).thenReturn(new ListingResponse());
+        when(listingMapper.toDetailResponse(listing)).thenReturn(new ListingDetailResponse());
 
         listingService.getListing(1L, "stranger@test.com");
 
-        verify(listingMapper).toResponse(listing);
+        verify(listingMapper).toDetailResponse(listing);
     }
 
     // --- updateListing ---

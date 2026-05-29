@@ -1,18 +1,18 @@
-# carRental — Technical Reference
+# carRental
 
-Full-stack car rental application. Backend: Spring Boot / PostgreSQL / RabbitMQ / JWT. Frontend: React 18 / Vite / Axios.
+Platforma wypożyczalni samochodów — właściciele mogą wystawiać samochody na wynajem, renters przeglądać i rezerwować pojazdy, a system zarządza dwuetapowym procesem potwierdzenia rezerwacji z obsługą powiadomień w czasie rzeczywistym.
 
 ---
 
-## Project Layout
+## Struktura projektu
 
 ```
 carRental/
-├── backend/          Spring Boot 4.0.6, Java 25, Maven
-├── frontend/         React 18, Vite 5, React Router 6, Axios
-├── docker-compose.yaml
-├── init.sql          DB schema (enums + tables + FK constraints)
-├── seeding.sql       Dev seed data (mounted only on db, not db-test)
+├── backend/            Aplikacja Spring Boot (Java 25, Maven)
+├── frontend/           Aplikacja React (Vite, React Router, Axios)
+├── docker-compose.yaml Środowisko deweloperskie (PostgreSQL + RabbitMQ)
+├── init.sql            Schemat bazy danych
+├── seeding.sql         Dane testowe (tylko środowisko dev)
 └── README.md
 ```
 
@@ -20,395 +20,303 @@ carRental/
 
 ## Backend
 
-### Stack
+### Technologie
 
-| Concern | Detail |
+| Warstwa | Wybór |
 |---|---|
 | Framework | Spring Boot 4.0.6 (webmvc) |
-| Java | 25 |
-| DB | PostgreSQL 16 |
+| Język | Java 25 |
+| Baza danych | PostgreSQL 16 |
 | ORM | Spring Data JPA + Hibernate |
-| Auth | JWT stateless (jjwt 0.12.6), `BCryptPasswordEncoder` |
-| Messaging | RabbitMQ via `spring-boot-starter-amqp`, `JacksonJsonMessageConverter` |
-| Cache | Spring Cache, `ConcurrentMapCacheManager`, cache name `"listing"` |
-| Validation | Jakarta Validation (`@Valid`, `@NotNull`, `@AssertTrue`, `@Pattern`) |
-| Lombok | `@Getter`, `@Setter`, `@NoArgsConstructor` on entities |
+| Autoryzacja | JWT stateless (jjwt 0.12.6), BCrypt |
+| Kolejki | RabbitMQ (Spring AMQP) |
+| Cache | Spring Cache (ConcurrentMapCacheManager) |
+| Walidacja | Jakarta Validation |
 
-### Infrastructure
+### Uruchomienie
 
-```yaml
-db:       PostgreSQL 16, port from .env (${DB_PORT}), volumes: init.sql + seeding.sql
-db-test:  PostgreSQL 16, port 5433, volumes: init.sql only (no seed data)
-rabbitmq: (external / local) — default port 5672
+**Wymagania:** Docker, JDK 25, Maven
+
+```bash
+# 1. Uruchom infrastrukturę (PostgreSQL + RabbitMQ)
+docker compose up -d
+
+# 2. Uruchom aplikację
+cd backend
+mvn spring-boot:run
 ```
 
-Reset dev DB (required after schema changes): `docker compose down -v && docker compose up -d`
+Zmienne środowiskowe (plik `.env` w katalogu głównym):
+```
+DB_PORT=5432
+POSTGRES_DB=carRental
+POSTGRES_USER=...
+POSTGRES_PASSWORD=...
+RABBITMQ_USER=...
+RABBITMQ_PASS=...
+JWT_SECRET=...
+```
 
-### Package Structure
+> **Reset bazy danych** (wymagany po zmianie schematu): `docker compose down -v && docker compose up -d`
+
+> **Sekret JWT** — zmiana `JWT_SECRET` unieważnia wszystkie aktywne tokeny (używane przy pełnym resecie środowiska).
+
+### Architektura
+
+Aplikacja podzielona na domeny, każda z warstwami Controller → Service → Repository:
 
 ```
 dev.fascodes.carRental
-├── common
-│   ├── config/       SecurityConfig (@EnableMethodSecurity), CacheConfig, RabbitConfig
-│   ├── exception/    GlobalExceptionHandler, ApiErrorResponse
-│   ├── security/     JwtAuthenticationFilter, AuthenticatedUser record(email, role)
-│   └── utility/      JwtUtil
-├── user/             User, UserRole(USER|ADMIN), AuthController, UserService
-├── car/              Car, GearboxType, CarController, CarService, CarMapper
-├── listing/          Listing, ListingStatus, ListingController, ListingService
-│   └── specification/ ListingSpecification (JPA Specs for browse filter)
-├── reservation/      Reservation, ReservationStatus, ReservationController, ReservationService
-└── notification/
-    ├── controller/   NotificationController
-    ├── dto/          NotificationResponse
-    ├── model/        Notification
-    ├── repository/   NotificationRepository
-    ├── service/      NotificationService, NotificationConsumer (@RabbitListener)
-    └── ReservationNotificationEvent  (record, published by ReservationService)
+├── common/         Konfiguracja (Security, Cache, RabbitMQ), obsługa błędów, JWT
+├── user/           Rejestracja, logowanie, profil zalogowanego użytkownika
+├── car/            Zarządzanie samochodami właściciela
+├── listing/        Ogłoszenia wynajmu z filtrowaniem i cache'm
+├── reservation/    Dwuetapowy proces rezerwacji z zabezpieczeniem race condition
+└── notification/   Powiadomienia konsumowane z kolejki RabbitMQ, zapis do bazy
 ```
 
-**`AuthenticatedUser`** is a record `(String email, String role)` injected via `@AuthenticationPrincipal` in all controllers.
-
-### Domain Model
+### Model dziedziny
 
 ```
-User            id, username, email, password(bcrypt), role(UserRole)
-
-Car             id, owner→User, brand, model, modelYear, vin(17), seatNumber,
-                gearboxType(GearboxType), horsePower, avgLiters(numeric 3,2), info(text)
-
-Listing         id, car→Car, user→User(owner), price(int), status(ListingStatus),
-                title, localization, body(text), createdAt, lastActive
-
-Reservation     id, listing→Listing, owner→User, renter→User,
-                status(ReservationStatus), dateStart, dateEnd, createdAt
-
-Notification    id, userEmail(varchar), message(varchar), reservationId(nullable FK),
-                isRead(boolean, default false), createdAt
-
-UserRole:          USER | ADMIN
-GearboxType:       MANUAL | AUTOMATIC
-ListingStatus:     ACTIVE | INACTIVE
-ReservationStatus: PENDING | RENTER_CONFIRMED | CONFIRMED | ACTIVE | CANCELLED | COMPLETED
+User         — konto użytkownika (USER / ADMIN)
+Car          — pojazd przypisany do właściciela
+Listing      — ogłoszenie wynajmu auta (ACTIVE / INACTIVE)
+Reservation  — rezerwacja pomiędzy właścicielem a wynajmującym
+Notification — powiadomienie zapisane po zdarzeniu rezerwacji
 ```
 
-All enum columns: `@JdbcType(PostgreSQLEnumJdbcType.class)` — PostgreSQL native enum type.
-
-### Security
-
-- `POST /api/auth/**` — public
-- All other endpoints — `Authorization: Bearer <jwt>` required → 401 if missing
-- JWT subject = user email
-- `@PreAuthorize("hasRole('ADMIN')")` for admin endpoints — role stored as `ROLE_ADMIN`
-- All controllers use `@AuthenticationPrincipal AuthenticatedUser user` → `user.email()`
-
-### Messaging — RabbitMQ
+### Proces rezerwacji
 
 ```
-Exchange:    reservation.exchange  (TopicExchange)
-Queue:       notification.reservation  (durable)
-Routing key: reservation.confirmed
-Converter:   JacksonJsonMessageConverter (tools.jackson / Jackson 3)
-```
-
-**Flow:**
-1. `ReservationService` publishes `ReservationNotificationEvent` after renter or owner confirm
-2. `NotificationConsumer` receives from queue → builds human-readable message → saves `Notification` to DB
-
-**Event payload** (`ReservationNotificationEvent` record):
-```json
-{ "reservationId", "recipientEmail", "recipientUsername", "listingTitle", "dateStart", "dateEnd", "type" }
-```
-`type`: `"RENTER_CONFIRMED"` (sent to owner) | `"CONFIRMED"` (sent to renter)
-
-**Saved messages:**
-- `RENTER_CONFIRMED` → *"New reservation request for '{title}' ({start} – {end}) awaiting your confirmation."*
-- `CONFIRMED` → *"Your reservation for '{title}' ({start} – {end}) has been confirmed by the owner."*
-
----
-
-## API Reference
-
-### Auth
-
-| Method | Path | Auth | Body | Response |
-|---|---|---|---|---|
-| POST | `/api/auth/register` | Public | `{username, email, password}` | string |
-| POST | `/api/auth/login` | Public | `{email, password}` | `{token}` |
-
----
-
-### Car — `/api/car`
-
-| Method | Path | Auth | Returns | Notes |
-|---|---|---|---|---|
-| POST | `/add` | User | `AddCarResponse` | Owner = caller |
-| DELETE | `/{id}` | Owner | 204 | 404 if not owner; 409 if car has any listing |
-| GET | `/my` | User | `List<CarDetailResponse>` | All cars owned by caller |
-| GET | `/{id}` | User | `CarDetailResponse` | No ownership check |
-| PATCH | `/{id}` | Owner | `CarResponse` | 404 if not owner; all fields nullable |
-| PATCH | `/{id}/admin` | ADMIN | `CarResponse` | No ownership check; owner never changed |
-
-**AddCarRequest** (POST /add):
-```json
-{ "brand", "model", "modelYear", "vin", "seatNumber", "gearboxType"("MANUAL"|"AUTOMATIC"), "horsePower", "avgLiters", "info" }
-```
-
-**PatchCarRequest** (PATCH /{id}, /{id}/admin) — all nullable:
-```json
-{ "brand"?, "model"?, "modelYear"?, "vin"?, "seatNumber"?, "gearboxType"?, "horsePower"?, "avgLiters"?, "info"? }
-```
-
-**CarDetailResponse** (GET /my, GET /{id}):
-```json
-{ "id", "brand", "model", "modelYear", "gearboxType", "vin", "seatNumber", "horsePower", "avgLiters", "info" }
-```
-
-**CarResponse** (PATCH responses):
-```json
-{ "brand", "model", "modelYear", "gearboxType" }
-```
-
----
-
-### Listing — `/api/listing`
-
-| Method | Path | Auth | Returns | Notes |
-|---|---|---|---|---|
-| POST | `/add` | User | `AddListingResponse` | Car must belong to caller (403 otherwise) |
-| DELETE | `/{id}` | Owner | 204 | 403 if not owner; 409 if PENDING/RENTER_CONFIRMED/CONFIRMED reservations exist |
-| GET | `/my` | User | `List<ListingResponse>` | Own listings; optional `?status=ACTIVE\|INACTIVE` |
-| GET | `/filter` | User | `Page<ListingResponse>` | ACTIVE only; params: `brand`, `priceMax`, `page`, `size`, `sort` |
-| GET | `/{id}` | User | `ListingDetailResponse` | INACTIVE → 404 unless caller is owner; result cached when ACTIVE |
-| PATCH | `/{id}` | Owner | `ListingResponse` | 404 if not owner; all fields nullable; evicts cache |
-
-**AddListingRequest** (POST /add):
-```json
-{
-  "carId",
-  "title",
-  "localization",   // required — letters and hyphens only, Unicode (e.g. "Warszawa", "Nowy-Sacz")
-  "price",
-  "body",
-  "status": "ACTIVE"|"INACTIVE"
-}
-```
-
-**UpdateListingRequest** (PATCH /{id}) — all nullable:
-```json
-{ "carId"?, "title"?, "localization"?, "price"?, "body"?, "status"? }
-```
-
-**ListingResponse** (GET /my, GET /filter, PATCH response):
-```json
-{ "id", "title", "localization", "price", "brand", "model", "modelYear", "gearboxType", "status" }
-```
-
-**ListingDetailResponse** (GET /{id}):
-```json
-{
-  "id", "title", "localization", "body", "price", "status", "ownerUsername",
-  "brand", "model", "modelYear", "gearboxType", "vin",
-  "seatNumber", "horsePower", "avgLiters", "info"
-}
-```
-
----
-
-### Reservation — `/api/reservation`
-
-#### Flow
-
-```
-[Renter] POST /               → PENDING
-[Renter] POST /{id}/confirm   → RENTER_CONFIRMED
-  │  pessimistic lock on listing
-  │  overlap check vs CONFIRMED
-  │  cancels all overlapping PENDING
-  │  publishes RENTER_CONFIRMED event → notification to owner
+[Renter] Tworzy rezerwację          → PENDING
+[Renter] Potwierdza (płatność)      → RENTER_CONFIRMED
+  │  (race condition guard + pessimistic lock)
   │
-  ├─ [Owner] POST /{id}/owner-confirm → CONFIRMED
-  │    simple status change, no lock
-  │    publishes CONFIRMED event → notification to renter
-  │
-  └─ [Renter] PATCH /cancel/{id} → CANCELLED
+  ├─ [Owner] Potwierdza             → CONFIRMED
+  └─ [Renter] Anuluje               → CANCELLED
 
-[Renter] PATCH /cancel/{id}  valid from: PENDING, RENTER_CONFIRMED, CONFIRMED
-[Admin]  PATCH /{id}/admin   can set any status directly
+[Admin] Może ustawić dowolny status bezpośrednio
 ```
 
-**Business rules:**
-- Owner cannot reserve own listing → 403
-- `dateEnd` must be after `dateStart` → 400
-- Only renter can cancel → 403 for others; non-cancellable status → 409
-- `addReservation` blocks if RENTER_CONFIRMED or CONFIRMED overlap exists
+Po każdym potwierdzeniu system publikuje zdarzenie na RabbitMQ → `NotificationConsumer` zapisuje powiadomienie do bazy danych.
 
-| Method | Path | Auth | Returns | Notes |
-|---|---|---|---|---|
-| POST | `/` | User | `ReservationResponse` | 403 if self-reservation; 400 if dates invalid |
-| POST | `/{id}/confirm` | Renter | `ReservationResponse` | PENDING → RENTER_CONFIRMED; race condition here |
-| POST | `/{id}/owner-confirm` | Owner | `ReservationResponse` | RENTER_CONFIRMED → CONFIRMED; simple |
-| PATCH | `/{id}/admin` | ADMIN | `ReservationResponse` | Set any status |
-| PATCH | `/cancel/{id}` | Renter | `ReservationResponse` | PENDING/RENTER_CONFIRMED/CONFIRMED → CANCELLED |
-| GET | `/{id}` | Owner or Renter | `ReservationResponse` | 403 if neither |
-| GET | `/my/owner` | User | `List<ReservationResponse>` | Optional `?status=` |
-| GET | `/my/renter` | User | `List<ReservationResponse>` | Optional `?status=` |
-| GET | `/admin` | ADMIN | `List<ReservationResponse>` | Required `?email=`, optional `?status=` |
+### Endpointy API
 
-**AddReservationRequest** (POST /):
-```json
-{ "listingId", "dateStart"(ISO datetime), "dateEnd"(ISO datetime) }
+Wszystkie endpointy (oprócz `/api/auth/**`) wymagają nagłówka `Authorization: Bearer <token>`.
+
+| Zasób | Ścieżka bazowa | Opis |
+|---|---|---|
+| Auth | `POST /api/auth/register`, `POST /api/auth/login` | Rejestracja i logowanie |
+| User | `GET /api/user/me` | Profil zalogowanego użytkownika |
+| Car | `/api/car` | CRUD samochodów właściciela |
+| Listing | `/api/listing` | Przeglądanie i zarządzanie ogłoszeniami |
+| Reservation | `/api/reservation` | Rezerwacje (owner / renter / admin) |
+| Notification | `/api/notification` | Powiadomienia zalogowanego użytkownika |
+
+Szczegółowe kształty requestów i responsów — patrz [Backend API Reference](#backend-api-reference) poniżej.
+
+### Testy
+
+```bash
+# Wymagany kontener testowy (port 5433)
+docker compose up -d db-test
+
+cd backend
+mvn test
 ```
 
-**PatchReservationStatusRequest** (PATCH /{id}/admin):
-```json
-{ "status": "PENDING"|"RENTER_CONFIRMED"|"CONFIRMED"|"ACTIVE"|"CANCELLED"|"COMPLETED" }
-```
-
-**ReservationResponse** (all reservation endpoints):
-```json
-{
-  "id", "listingId", "listingTitle", "listingLocalization",
-  "status": "PENDING"|"RENTER_CONFIRMED"|"CONFIRMED"|"ACTIVE"|"CANCELLED"|"COMPLETED",
-  "dateStart", "dateEnd"
-}
-```
-
-#### Reservation status UI guide
-
-| Status | Renter sees | Owner sees | Available actions |
-|---|---|---|---|
-| `PENDING` | Awaiting your confirmation | New request | Renter: confirm or cancel |
-| `RENTER_CONFIRMED` | Awaiting owner approval | Ready to confirm | Owner: confirm; Renter: cancel |
-| `CONFIRMED` | Confirmed | Confirmed | Renter: cancel |
-| `ACTIVE` | Active rental | Active rental | — |
-| `CANCELLED` | Cancelled | Cancelled | — |
-| `COMPLETED` | Completed | Completed | — |
-
----
-
-### Notification — `/api/notification`
-
-| Method | Path | Auth | Returns | Notes |
-|---|---|---|---|---|
-| GET | `/my` | User | `List<NotificationResponse>` | All notifications for caller, newest first |
-| PATCH | `/{id}/read` | User | `NotificationResponse` | 403 if not recipient; marks as read |
-
-**NotificationResponse**:
-```json
-{ "id", "message", "reservationId", "read"(boolean), "createdAt" }
-```
+| Typ | Zakres |
+|---|---|
+| Testy jednostkowe (Mockito) | CarService, ListingService, ReservationService |
+| Testy kontrolerów (MockMvc) | Bezpieczeństwo endpointów (401/403/200) dla Car, Reservation |
+| Testy integracyjne (SpringBootTest) | ReservationRepository (zapytania JPQL) |
+| Test współbieżności | Race condition przy potwierdzaniu rezerwacji (pesymistyczny lock) |
 
 ---
 
 ## Frontend
 
-### Stack
+### Technologie
 
-| Concern | Detail |
+| Warstwa | Wybór |
 |---|---|
 | Framework | React 18 |
 | Build | Vite 5 |
 | Routing | React Router 6 |
-| HTTP | Axios (`src/api/axiosInstance.js`) |
+| HTTP | Axios |
+| Styl | CSS (czysty, bez frameworka) |
 
-### Structure
+### Uruchomienie
+
+**Wymagania:** Node.js 18+, uruchomiony backend (`mvn spring-boot:run`)
+
+```bash
+cd frontend
+npm install
+npm run dev     # dev server na http://localhost:5173
+```
+
+Vite proxy przekierowuje `/api/*` → `http://localhost:8080` — brak problemów z CORS w środowisku deweloperskim.
+
+### Struktura
 
 ```
 frontend/src/
-├── api/
-│   ├── axiosInstance.js
-│   ├── auth.js            register, login
-│   ├── cars.js            addCar, deleteCar, getMyCars, getCar, patchCar, patchCarAdmin
-│   ├── listings.js        addListing, deleteListing, filterListings, getListing, getMyListings(params), patchListing
-│   └── reservations.js    createReservation, confirmReservation (renter), ownerConfirmReservation,
-│                          cancelReservation, getReservation,
-│                          getOwnerReservations(params), getRenterReservations(params),
-│                          patchReservationAdmin, getAdminReservations(params)
+├── api/              Funkcje HTTP pogrupowane per domena — jedyne miejsce wywołań Axios
+│   ├── axiosInstance.js   Instancja z interceptorami (token + globalny 401)
+│   ├── auth.js
+│   ├── cars.js
+│   ├── listings.js
+│   ├── notifications.js
+│   ├── reservations.js
+│   └── user.js
 ├── components/
 │   ├── ListingCard.jsx
-│   ├── NavBar.jsx
-│   ├── ProtectedRoute.jsx   (ProtectedRoute + AdminRoute)
+│   ├── NavBar.jsx         Dzwonek powiadomień z badge i dropdownem
+│   ├── ProtectedRoute.jsx (ProtectedRoute + AdminRoute)
 │   └── ReservationCard.jsx
 ├── context/
-│   └── AuthContext.jsx
-├── pages/
-│   ├── LoginPage.jsx / RegisterPage.jsx
-│   ├── HomePage.jsx                      GET /listing/filter
-│   ├── ListingDetailPage.jsx             GET /listing/{id} → ListingDetailResponse
-│   ├── ListingEditPage.jsx               PATCH /listing/{id}
-│   ├── ListingAddPage.jsx                POST /listing/add
-│   ├── PanelPage.jsx
-│   ├── PanelListingsPage.jsx             GET /listing/my
-│   ├── CarsPage.jsx                      GET /car/my
-│   ├── CarAddPage.jsx                    POST /car/add
-│   ├── CarDetailPage.jsx                 GET /car/{id}
-│   ├── OwnerReservationsPage.jsx         GET /reservation/my/owner
-│   ├── RenterReservationsPage.jsx        GET /reservation/my/renter
-│   ├── ReservationDetailPage.jsx         GET /reservation/{id} + confirm/cancel/owner-confirm
-│   ├── AdminPage.jsx
-│   ├── AdminReservationsPage.jsx         GET /reservation/admin
-│   ├── AdminReservationDetailPage.jsx    PATCH /reservation/{id}/admin
-│   └── AdminCarDetailPage.jsx            PATCH /car/{id}/admin
+│   └── AuthContext.jsx    Token, rola, login/logout
+├── pages/                 Jeden plik = jeden widok (Route)
 ├── router/
 │   └── AppRouter.jsx
 └── utils/
-    └── date.js
+    ├── apiError.js        Stripowanie prefiksu "NNN STATUS" z ResponseStatusException
+    └── date.js            Formatowanie dat DD.MM.YYYY HH:mm
 ```
 
-### Routes
+### Kluczowe decyzje techniczne
 
-| Path | Component | Auth |
+**Interceptory Axios (`axiosInstance.js`)**
+Token JWT dołączany automatycznie do każdego requestu. Odpowiedź 401 czyści localStorage i robi `window.location.href = '/login'` — globalna obsługa wygaśnięcia sesji bez powielania kodu w każdym komponencie.
+
+**JWT dekodowany po stronie frontu (`AuthContext`)**
+Payload tokenu dekodowany bez weryfikacji sygnatury — wyłącznie do odczytu `role` na potrzeby renderowania UI (ukrywanie elementów admina). Weryfikacja odbywa się zawsze po stronie backendu.
+
+**Rola w rezerwacji przez `location.state`**
+`ReservationResponse` zwraca `ownerUsername`/`renterUsername` (display names), JWT zawiera email — nie można ich bezpośrednio porównać. Zamiast tego rola (`'owner'`/`'renter'`) jest przekazywana przez React Router `state` przy nawigacji z list rezerwacji i po tworzeniu rezerwacji. Bezpośrednie wejście w URL (zakładka) pokazuje wszystkie przyciski pasujące do statusu — backend egzekwuje autoryzację przez 403.
+
+**Vite proxy zamiast absolutnego URL**
+`baseURL: ''` + proxy w `vite.config.js` eliminuje CORS w devsie. W produkcji aplikację należy serwować z tego samego hosta co backend lub skonfigurować CORS po stronie serwera.
+
+**Parsowanie błędów API (`utils/apiError.js`)**
+Spring's `ResponseStatusException.getMessage()` zwraca format `"409 CONFLICT \"reason\""`. Regex `replace(/^\d{3}\s+\S+\s*/i, '').replace(/^"|"$/g, '')` stripuje prefiks statusu i cudzysłowy, zostawiając sam komunikat dla użytkownika.
+
+### Widoki
+
+| Ścieżka | Widok | Dostęp |
 |---|---|---|
-| `/login` | LoginPage | Public |
-| `/register` | RegisterPage | Public |
-| `/` | HomePage | User |
-| `/listing/:id` | ListingDetailPage | User |
-| `/listing/:id/edit` | ListingEditPage | User |
-| `/panel` | PanelPage | User |
-| `/panel/cars` | CarsPage | User |
-| `/panel/cars/add` | CarAddPage | User |
-| `/panel/cars/:id` | CarDetailPage | User |
-| `/panel/listings` | PanelListingsPage | User |
-| `/panel/listings/add` | ListingAddPage | User |
-| `/panel/reservations/owner` | OwnerReservationsPage | User |
-| `/panel/reservations/renter` | RenterReservationsPage | User |
-| `/panel/reservations/:id` | ReservationDetailPage | User |
-| `/admin` | AdminPage | ADMIN |
-| `/admin/reservations` | AdminReservationsPage | ADMIN |
-| `/admin/reservations/:id` | AdminReservationDetailPage | ADMIN |
-| `/admin/cars/:id` | AdminCarDetailPage | ADMIN |
-
-### Frontend API gaps (require implementation)
-
-| Feature | Required call |
-|---|---|
-| Owner confirm reservation | `ownerConfirmReservation(id)` → POST `/reservation/{id}/owner-confirm` |
-| List notifications | `getMyNotifications()` → GET `/notification/my` |
-| Mark notification read | `markNotificationRead(id)` → PATCH `/notification/{id}/read` |
-| My listings with filter | `getMyListings({ status })` → GET `/listing/my?status=` |
+| `/login` | Logowanie | Publiczny |
+| `/register` | Rejestracja | Publiczny |
+| `/` | Lista ogłoszeń + filtry | Zalogowany |
+| `/listing/:id` | Szczegół ogłoszenia + formularz rezerwacji | Zalogowany |
+| `/listing/:id/edit` | Edycja ogłoszenia | Właściciel |
+| `/panel` | Dashboard (username z `/api/user/me`) | Zalogowany |
+| `/panel/cars` | Lista własnych samochodów | Zalogowany |
+| `/panel/cars/add` | Dodaj samochód | Zalogowany |
+| `/panel/cars/:id` | Szczegół i edycja samochodu | Zalogowany |
+| `/panel/listings` | Lista własnych ogłoszeń | Zalogowany |
+| `/panel/listings/add` | Dodaj ogłoszenie | Zalogowany |
+| `/panel/reservations/owner` | Rezerwacje jako właściciel | Zalogowany |
+| `/panel/reservations/renter` | Rezerwacje jako najemca | Zalogowany |
+| `/panel/reservations/:id` | Szczegół rezerwacji + akcje | Zalogowany |
+| `/admin` | Panel administratora | ADMIN |
+| `/admin/reservations` | Wyszukiwanie rezerwacji po emailu | ADMIN |
+| `/admin/reservations/:id` | Zmiana statusu rezerwacji | ADMIN |
+| `/admin/cars/:id` | Edycja samochodu (admin) | ADMIN |
 
 ---
 
-## Key Design Decisions
+## Uruchomienie całego projektu
 
-- **Owner identity** — always compared by email, never by ID
-- **Self-reservation blocked** — 403 if `listing.owner.email == renterEmail`
-- **Race condition** — pessimistic lock + overlap check at `renterConfirmReservation`; `ownerConfirmReservation` is lock-free
-- **RENTER_CONFIRMED blocks new reservations** — `addReservation` rejects overlapping RENTER_CONFIRMED or CONFIRMED dates
-- **Notification decoupling** — ReservationService only publishes events; NotificationConsumer handles persistence independently
-- **NOT_FOUND vs FORBIDDEN** — existence-sensitive endpoints return 404 for unauthorized callers
-- **INACTIVE listing** — visible only to owner via GET /{id}; excluded from GET /filter
-- **Car delete guard** — blocked by ANY listing regardless of status
-- **Listing delete guard** — blocked by PENDING, RENTER_CONFIRMED, or CONFIRMED reservations
-- **JWT invalidation** — manual secret rotation (option 4) for dev resets; refresh tokens or token versioning deferred
+```bash
+# 1. Infrastruktura
+docker compose up -d
+
+# 2. Backend (osobny terminal)
+cd backend
+mvn spring-boot:run
+
+# 3. Frontend (osobny terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+Aplikacja dostępna pod `http://localhost:5173`.
+Dane testowe (seed) są ładowane automatycznie przez Docker przy pierwszym uruchomieniu.
 
 ---
 
-## Open TODOs
+## Backend API Reference
 
-1. Rate limiting + auth retry limit (3/min) — `SecurityConfig`
-2. DB trigger for cascading car deletion with listing archival — `CarController`
-3. Listing auto-expiry — 30 days ACTIVE max, owner-extendable — `ListingController`
-4. Date availability filter on GET /listing/filter — `ListingSpecification`
-5. Email sending via JavaMailSender — `NotificationConsumer`
+### Auth
+
+| Metoda | Ścieżka | Body | Odpowiedź |
+|---|---|---|---|
+| POST | `/api/auth/register` | `{username, email, password}` | string |
+| POST | `/api/auth/login` | `{email, password}` | `{token}` |
+
+### User
+
+| Metoda | Ścieżka | Auth | Odpowiedź |
+|---|---|---|---|
+| GET | `/api/user/me` | User | `{username, role}` |
+
+### Car — `/api/car`
+
+| Metoda | Ścieżka | Auth | Odpowiedź | Uwagi |
+|---|---|---|---|---|
+| POST | `/add` | User | `AddCarResponse` | Owner = zalogowany |
+| DELETE | `/{id}` | Owner | 204 | 409 jeśli ma ogłoszenia |
+| GET | `/my` | User | `List<CarDetailResponse>` | Samochody zalogowanego |
+| GET | `/{id}` | User | `CarDetailResponse` | Publiczny widok |
+| PATCH | `/{id}` | Owner | `CarResponse` | Nullable patch |
+| PATCH | `/{id}/admin` | ADMIN | `CarResponse` | Bez sprawdzania właściciela |
+
+**CarDetailResponse:** `{id, brand, model, modelYear, gearboxType, vin, seatNumber, horsePower, avgLiters, info}`
+
+### Listing — `/api/listing`
+
+| Metoda | Ścieżka | Auth | Odpowiedź | Uwagi |
+|---|---|---|---|---|
+| POST | `/add` | User | `AddListingResponse` | Auto musi należeć do wywołującego |
+| DELETE | `/{id}` | Owner | 204 | 409 przy aktywnych rezerwacjach |
+| GET | `/my` | User | `List<ListingResponse>` | Opcjonalny `?status=` |
+| GET | `/filter` | User | `Page<ListingResponse>` | Tylko ACTIVE; `brand`, `priceMax`, `Pageable` |
+| GET | `/{id}` | User | `ListingDetailResponse` | INACTIVE → 404 chyba że owner |
+| PATCH | `/{id}` | Owner | `ListingResponse` | Nullable patch; ewiktuje cache |
+
+**AddListingRequest:** `{carId, title, localization, price, body, status}`
+— `localization`: wymagane, tylko litery i myślniki (Unicode)
+
+**ListingResponse:** `{id, title, localization, price, brand, model, modelYear, gearboxType, status}`
+
+**ListingDetailResponse:** `{id, title, localization, body, price, status, ownerUsername, brand, model, modelYear, gearboxType, vin, seatNumber, horsePower, avgLiters, info}`
+
+### Reservation — `/api/reservation`
+
+| Metoda | Ścieżka | Auth | Odpowiedź | Uwagi |
+|---|---|---|---|---|
+| POST | `/` | User | `ReservationResponse` | 403 self-reservation; 400 złe daty |
+| POST | `/{id}/confirm` | Renter | `ReservationResponse` | PENDING → RENTER_CONFIRMED |
+| POST | `/{id}/owner-confirm` | Owner | `ReservationResponse` | RENTER_CONFIRMED → CONFIRMED |
+| PATCH | `/cancel/{id}` | Renter | `ReservationResponse` | PENDING/RENTER_CONFIRMED/CONFIRMED → CANCELLED |
+| PATCH | `/{id}/admin` | ADMIN | `ReservationResponse` | Dowolny status |
+| GET | `/{id}` | Owner lub Renter | `ReservationResponse` | 403 dla innych |
+| GET | `/my/owner` | User | `List<ReservationResponse>` | Opcjonalny `?status=` |
+| GET | `/my/renter` | User | `List<ReservationResponse>` | Opcjonalny `?status=` |
+| GET | `/admin` | ADMIN | `List<ReservationResponse>` | Wymagany `?email=` |
+
+**ReservationResponse:** `{id, listingId, listingTitle, listingLocalization, status, dateStart, dateEnd, ownerUsername, renterUsername}`
+
+**Statusy:** `PENDING` → `RENTER_CONFIRMED` → `CONFIRMED` → `ACTIVE` → `COMPLETED` / `CANCELLED`
+
+### Notification — `/api/notification`
+
+| Metoda | Ścieżka | Auth | Odpowiedź | Uwagi |
+|---|---|---|---|---|
+| GET | `/my` | User | `List<NotificationResponse>` | Najnowsze pierwsze |
+| PATCH | `/{id}/read` | User | `NotificationResponse` | 403 jeśli nie adresat |
+
+**NotificationResponse:** `{id, message, reservationId, read, createdAt}`
