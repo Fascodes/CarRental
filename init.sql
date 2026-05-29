@@ -1,5 +1,6 @@
 CREATE TYPE "reservations_status" AS ENUM (
   'PENDING',
+  'RENTER_CONFIRMED',
   'CONFIRMED',
   'ACTIVE',
   'CANCELLED',
@@ -39,6 +40,7 @@ CREATE TABLE "listings" (
   "price" integer,
   "status" listings_status,
   "title" varchar,
+  "localization" varchar,
   "body" text,
   "created_at" timestamp,
   "last_active" timestamp
@@ -47,7 +49,7 @@ CREATE TABLE "listings" (
 CREATE TABLE "users" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "username" varchar,
-  "email" varchar,
+  "email" varchar UNIQUE,
   "password" varchar,
   "role" user_role,
   "last_online" timestamp,
@@ -66,6 +68,15 @@ CREATE TABLE "cars" (
   "horse_power" integer,
   "avg_liters_per_hundred_km" numeric(3,2),
   "addtional_information" text
+);
+
+CREATE TABLE "notifications" (
+  "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  "user_email" varchar NOT NULL,
+  "message" varchar NOT NULL,
+  "reservation_id" bigint REFERENCES reservations(id),
+  "is_read" boolean DEFAULT false,
+  "created_at" timestamp DEFAULT now()
 );
 
 COMMENT ON COLUMN "listings"."body" IS 'Content of the listing';

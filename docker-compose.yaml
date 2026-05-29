@@ -1,4 +1,15 @@
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    networks:
+      - pg-network
+
   db:
     image: postgres:16
     ports:
@@ -12,8 +23,20 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./seeding.sql:/docker-entrypoint-initdb.d/seeding.sql
 
-
+  db-test:
+    image: postgres:16
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: carRentalTest
+      POSTGRES_USER: test
+    networks:
+      - pg-network
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 networks:
   pg-network:

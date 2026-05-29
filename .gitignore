@@ -35,3 +35,18 @@ build/
 
 ### Environment ###
 .env
+
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Claude Code
+.claude/
+
+# Misc
+*.local
+.DS_Store
