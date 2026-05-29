@@ -3,6 +3,7 @@ package dev.fascodes.carRental.car.controller;
 import dev.fascodes.carRental.car.dto.CarDetailResponse;
 import dev.fascodes.carRental.car.dto.CarResponse;
 import dev.fascodes.carRental.car.service.CarService;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -25,6 +26,23 @@ class CarControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean CarService carService;
+
+    // --- GET /my ---
+
+    @Test
+    void getMyCars_returns401_whenUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/car/my"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockAuthenticatedUser
+    void getMyCars_returns200_whenAuthenticated() throws Exception {
+        when(carService.getMyCars(any())).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/car/my"))
+                .andExpect(status().isOk());
+    }
 
     // --- GET /{id} ---
 

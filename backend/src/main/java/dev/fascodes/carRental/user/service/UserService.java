@@ -43,6 +43,11 @@ public class UserService {
         return "User registered";
     }
 
+    @Transactional(readOnly = true)
+    public String getUsername(String email) {
+        return userRepository.findByEmail(email).orElseThrow().getUsername();
+    }
+
     public AuthResponse login(LoginRequest req){
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));

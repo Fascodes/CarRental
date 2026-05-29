@@ -70,6 +70,15 @@ CREATE TABLE "cars" (
   "addtional_information" text
 );
 
+CREATE TABLE "notifications" (
+  "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  "user_email" varchar NOT NULL,
+  "message" varchar NOT NULL,
+  "reservation_id" bigint REFERENCES reservations(id),
+  "is_read" boolean DEFAULT false,
+  "created_at" timestamp DEFAULT now()
+);
+
 COMMENT ON COLUMN "listings"."body" IS 'Content of the listing';
 
 COMMENT ON COLUMN "cars"."addtional_information" IS 'Car information';
