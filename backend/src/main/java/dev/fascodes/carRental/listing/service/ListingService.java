@@ -70,7 +70,7 @@ public class ListingService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         boolean hasActive = reservationRepository.existsByListingIdAndStatusIn(
-                listingId, List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED));
+                listingId, List.of(ReservationStatus.PENDING, ReservationStatus.RENTER_CONFIRMED, ReservationStatus.CONFIRMED));
         if (hasActive) throw new ResponseStatusException(HttpStatus.CONFLICT, "Listing has active reservations");
         listingRepository.delete(listing);
     }

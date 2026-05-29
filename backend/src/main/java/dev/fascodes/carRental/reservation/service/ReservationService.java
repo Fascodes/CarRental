@@ -50,13 +50,16 @@ public class ReservationService {
         }
 
         User owner = listing.getUser();
+        if (owner.getEmail().equals(renterEmail)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot reserve your own listing");
+        }
         Reservation reservation = reservationMapper.toEntity(request, listing, owner, renter);
         reservationRepository.save(reservation);
         return reservationMapper.toResponse(reservation);
     }
 
     @Transactional
-    public ReservationResponse confirmReservation(Long reservationId, String ownerEmail) {
+    public ReservationResponse renterConfirmReservation(Long reservationId, String renterEmail) {
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
@@ -64,7 +67,7 @@ public class ReservationService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation is not PENDING");
         }
 
-        if (!reservation.getOwner().getEmail().equals(ownerEmail)) {
+        if (!reservation.getRenter().getEmail().equals(renterEmail)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
 
@@ -76,10 +79,10 @@ public class ReservationService {
                 reservation.getDateEnd(), reservation.getDateStart());
 
         if (hasConflict) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Date range already confirmed for another reservation");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Date range already confirmed");
         }
 
-        reservation.setStatus(ReservationStatus.CONFIRMED);
+        reservation.setStatus(ReservationStatus.RENTER_CONFIRMED);
 
         reservationRepository.cancelOverlappingPending(
                 reservation.getListing().getId(),
@@ -87,6 +90,23 @@ public class ReservationService {
                 reservation.getDateEnd(),
                 reservationId);
 
+        return reservationMapper.toResponse(reservation);
+    }
+
+    @Transactional
+    public ReservationResponse ownerConfirmReservation(Long reservationId, String ownerEmail) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        if (reservation.getStatus() != ReservationStatus.RENTER_CONFIRMED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation is not RENTER_CONFIRMED");
+        }
+
+        if (!reservation.getOwner().getEmail().equals(ownerEmail)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        reservation.setStatus(ReservationStatus.CONFIRMED);
         return reservationMapper.toResponse(reservation);
     }
 
@@ -119,8 +139,9 @@ public class ReservationService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         if (reservation.getStatus() != ReservationStatus.PENDING
+                && reservation.getStatus() != ReservationStatus.RENTER_CONFIRMED
                 && reservation.getStatus() != ReservationStatus.CONFIRMED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING or CONFIRMED reservations can be cancelled");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only PENDING, RENTER_CONFIRMED or CONFIRMED reservations can be cancelled");
         }
         reservation.setStatus(ReservationStatus.CANCELLED);
         return reservationMapper.toResponse(reservation);
