@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getRenterReservations, cancelReservation } from '../api/reservations'
+import { getRenterReservations } from '../api/reservations'
 import ReservationCard from '../components/ReservationCard'
 
-const STATUSES = ['', 'PENDING', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
+const STATUSES = ['', 'PENDING', 'RENTER_CONFIRMED', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
 
 export default function RenterReservationsPage() {
   const [reservations, setReservations] = useState([])
@@ -22,16 +22,6 @@ export default function RenterReservationsPage() {
 
   useEffect(() => { fetchReservations() }, [fetchReservations])
 
-  const handleCancel = async (id, e) => {
-    e.stopPropagation()
-    if (!confirm('Czy na pewno chcesz anulować tę rezerwację?')) return
-    try {
-      await cancelReservation(id)
-      fetchReservations()
-    } catch {
-      setError('Nie udało się anulować rezerwacji')
-    }
-  }
 
   return (
     <div className="page">
@@ -57,19 +47,7 @@ export default function RenterReservationsPage() {
       ) : (
         <div className="res-list">
           {reservations.map((r) => (
-            <div key={r.id}>
-              <ReservationCard reservation={r} showOwner />
-              {(r.status === 'PENDING' || r.status === 'CONFIRMED') && (
-                <div style={{ marginTop: '-0.25rem', marginBottom: '0.5rem', paddingLeft: '1rem' }}>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={(e) => handleCancel(r.id, e)}
-                  >
-                    Anuluj rezerwację
-                  </button>
-                </div>
-              )}
-            </div>
+            <ReservationCard key={r.id} reservation={r} showOwner role="renter" />
           ))}
         </div>
       )}

@@ -40,6 +40,8 @@ public class ReservationService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         boolean hasConflict = reservationRepository.existsByListingIdAndStatusAndDateStartLessThanAndDateEndGreaterThan(
+                listing.getId(), ReservationStatus.RENTER_CONFIRMED,
+                request.getDateEnd(), request.getDateStart()) || reservationRepository.existsByListingIdAndStatusAndDateStartLessThanAndDateEndGreaterThan(
                 listing.getId(), ReservationStatus.CONFIRMED,
                 request.getDateEnd(), request.getDateStart());
 

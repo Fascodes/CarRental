@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Navigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { login } from '../api/auth'
+import { parseApiError } from '../utils/apiError'
 
 export default function LoginPage() {
   const { token, login: loginCtx } = useAuth()
@@ -26,7 +27,7 @@ export default function LoginPage() {
       loginCtx(res.data.token)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Błąd logowania')
+      setError(parseApiError(err, 'Błąd logowania'))
     } finally {
       setLoading(false)
     }

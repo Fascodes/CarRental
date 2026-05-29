@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { register } from '../api/auth'
+import { parseApiError } from '../utils/apiError'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -18,7 +19,7 @@ export default function RegisterPage() {
       await register(form)
       navigate('/login', { state: { success: 'Rejestracja zakończona sukcesem. Możesz się teraz zalogować.' } })
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Błąd rejestracji')
+      setError(parseApiError(err, 'Błąd rejestracji'))
     } finally {
       setLoading(false)
     }

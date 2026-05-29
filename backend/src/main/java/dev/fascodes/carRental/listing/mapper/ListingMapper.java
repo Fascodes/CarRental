@@ -13,6 +13,7 @@ public class ListingMapper {
         ListingResponse response = new ListingResponse();
         response.setId(listing.getId());
         response.setTitle(listing.getTitle());
+        response.setLocalization(listing.getLocalization());
         response.setPrice(listing.getPrice());
         response.setBrand(listing.getCar().getBrand());
         response.setModel(listing.getCar().getModel());
@@ -21,4 +22,28 @@ public class ListingMapper {
         response.setStatus(listing.getStatus());
         return response;
     }
+<<<<<<< Updated upstream
+=======
+
+    public ListingDetailResponse toDetailResponse(Listing listing) {
+        ListingDetailResponse response = new ListingDetailResponse();
+        response.setId(listing.getId());
+        response.setTitle(listing.getTitle());
+        response.setLocalization(listing.getLocalization());
+        response.setBody(listing.getBody());
+        response.setPrice(listing.getPrice());
+        response.setStatus(listing.getStatus());
+        response.setOwnerUsername(listing.getUser().getUsername());
+        response.setBrand(listing.getCar().getBrand());
+        response.setModel(listing.getCar().getModel());
+        response.setModelYear(listing.getCar().getModelYear());
+        response.setGearboxType(listing.getCar().getGearboxType());
+        response.setVin(listing.getCar().getVin());
+        response.setSeatNumber(listing.getCar().getSeatNumber());
+        response.setHorsePower(listing.getCar().getHorsePower());
+        response.setAvgLiters(listing.getCar().getAvgLiters());
+        response.setInfo(listing.getCar().getInfo());
+        return response;
+    }
+>>>>>>> Stashed changes
 }

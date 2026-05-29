@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { getReservation, confirmReservation, cancelReservation } from '../api/reservations'
-import { useAuth } from '../context/AuthContext'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { getReservation, confirmReservation, ownerConfirmReservation, cancelReservation } from '../api/reservations'
 import { formatDate } from '../utils/date'
+import { parseApiError } from '../utils/apiError'
 
 const statusClass = {
   PENDING: 'badge-pending',
+  RENTER_CONFIRMED: 'badge-renter-confirmed',
   CONFIRMED: 'badge-confirmed',
   ACTIVE: 'badge-renting',
   CANCELLED: 'badge-cancelled',
@@ -15,31 +16,31 @@ const statusClass = {
 export default function ReservationDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { state } = useLocation()
+  const role = state?.role  // 'owner' | 'renter' | undefined (direct URL)
+  const isOwner = role === 'owner'
+  const isRenter = role === 'renter'
+
   const [res, setRes] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
-  const fetchRes = () => {
+  useEffect(() => {
     getReservation(id)
       .then((r) => setRes(r.data))
       .catch(() => setError('Nie znaleziono rezerwacji'))
       .finally(() => setLoading(false))
-  }
+  }, [id])
 
-  useEffect(() => { fetchRes() }, [id])
-
-  const isOwner = user?.sub === res?.ownerEmail
-  const isRenter = user?.sub === res?.renterEmail
-
-  const handleConfirm = async () => {
+  const handle = (apiFn, errMsg) => async () => {
     setActionLoading(true)
+    setError('')
     try {
-      const r = await confirmReservation(id)
+      const r = await apiFn(id)
       setRes(r.data)
-    } catch {
-      setError('Nie udało się potwierdzić rezerwacji')
+    } catch (err) {
+      setError(parseApiError(err, errMsg))
     } finally {
       setActionLoading(false)
     }
@@ -47,19 +48,22 @@ export default function ReservationDetailPage() {
 
   const handleCancel = async () => {
     if (!confirm('Czy na pewno chcesz anulować tę rezerwację?')) return
-    setActionLoading(true)
-    try {
-      const r = await cancelReservation(id)
-      setRes(r.data)
-    } catch {
-      setError('Nie udało się anulować rezerwacji')
-    } finally {
-      setActionLoading(false)
-    }
+    await handle(cancelReservation, 'Nie udało się anulować rezerwacji')()
   }
 
   if (loading) return <div className="loading">Ładowanie...</div>
   if (!res) return <div className="page"><div className="alert alert-error">{error}</div></div>
+
+  const isPending = res.status === 'PENDING'
+  const isRenterConfirmed = res.status === 'RENTER_CONFIRMED'
+  const isConfirmed = res.status === 'CONFIRMED'
+  const canCancel = isPending || isRenterConfirmed || isConfirmed
+
+  // Gdy brak state (bezpośredni URL) – pokaż wszystkie przyciski pasujące do statusu;
+  // backend odrzuci nieautoryzowane akcje przez 403
+  const showRenterConfirm = (isRenter || !role) && isPending
+  const showOwnerConfirm  = (isOwner  || !role) && isRenterConfirmed
+  const showCancel        = (isRenter || !role) && canCancel
 
   return (
     <div className="page">
@@ -72,19 +76,24 @@ export default function ReservationDetailPage() {
         <div className="detail-grid">
           <div className="field"><label>Data od</label><p>{formatDate(res.dateStart)}</p></div>
           <div className="field"><label>Data do</label><p>{formatDate(res.dateEnd)}</p></div>
-          <div className="field"><label>Właściciel</label><p>{res.ownerEmail}</p></div>
-          <div className="field"><label>Najemca</label><p>{res.renterEmail}</p></div>
+          <div className="field"><label>Właściciel</label><p>{res.ownerUsername}</p></div>
+          <div className="field"><label>Najemca</label><p>{res.renterUsername}</p></div>
         </div>
 
         {error && <div className="alert alert-error" style={{ marginTop: '1rem' }}>{error}</div>}
 
         <div className="btn-group">
-          {isOwner && res.status === 'PENDING' && (
-            <button className="btn btn-success" onClick={handleConfirm} disabled={actionLoading}>
-              Potwierdź
+          {showRenterConfirm && (
+            <button className="btn btn-success" onClick={handle(confirmReservation, 'Nie udało się potwierdzić rezerwacji')} disabled={actionLoading}>
+              Potwierdź rezerwację
             </button>
           )}
-          {isRenter && (res.status === 'PENDING' || res.status === 'CONFIRMED') && (
+          {showOwnerConfirm && (
+            <button className="btn btn-success" onClick={handle(ownerConfirmReservation, 'Nie udało się zatwierdzić rezerwacji')} disabled={actionLoading}>
+              Zatwierdź
+            </button>
+          )}
+          {showCancel && (
             <button className="btn btn-danger" onClick={handleCancel} disabled={actionLoading}>
               Anuluj rezerwację
             </button>

@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 public class ReservationResponse {
     private Long id;
     private Long listingId;
+    private String listingTitle;
+    private String listingLocalization;
     private ReservationStatus status;
     private LocalDateTime dateStart;
     private LocalDateTime dateEnd;
@@ -16,6 +18,12 @@ public class ReservationResponse {
 
     public Long getListingId() { return listingId; }
     public void setListingId(Long listingId) { this.listingId = listingId; }
+
+    public String getListingTitle() { return listingTitle; }
+    public void setListingTitle(String listingTitle) { this.listingTitle = listingTitle; }
+
+    public String getListingLocalization() { return listingLocalization; }
+    public void setListingLocalization(String listingLocalization) { this.listingLocalization = listingLocalization; }
 
     public ReservationStatus getStatus() { return status; }
     public void setStatus(ReservationStatus status) { this.status = status; }

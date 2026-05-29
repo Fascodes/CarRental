@@ -39,6 +39,7 @@ CREATE TABLE "listings" (
   "price" integer,
   "status" listings_status,
   "title" varchar,
+  "localization" varchar,
   "body" text,
   "created_at" timestamp,
   "last_active" timestamp

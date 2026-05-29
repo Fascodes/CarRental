@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { addListing } from '../api/listings'
 import { getMyCars } from '../api/cars'
+import { parseApiError } from '../utils/apiError'
 
 export default function ListingAddPage() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ title: '', price: '', body: '', carId: '' })
+  const [form, setForm] = useState({ title: '', localization: '', price: '', body: '', carId: '', status: 'ACTIVE' })
   const [cars, setCars] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,7 +25,7 @@ export default function ListingAddPage() {
       await addListing({ ...form, price: Number(form.price), carId: Number(form.carId) })
       navigate('/panel/listings')
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Błąd podczas dodawania listingu')
+      setError(parseApiError(err, 'Błąd podczas dodawania listingu'))
     } finally {
       setLoading(false)
     }
@@ -41,12 +42,23 @@ export default function ListingAddPage() {
             <input name="title" value={form.title} onChange={handleChange} required />
           </div>
           <div className="form-group">
+            <label>Lokalizacja *</label>
+            <input name="localization" value={form.localization} onChange={handleChange} required placeholder="np. Warszawa" />
+          </div>
+          <div className="form-group">
             <label>Cena (zł / dzień) *</label>
             <input name="price" type="number" value={form.price} onChange={handleChange} required min="0" />
           </div>
           <div className="form-group">
             <label>Opis</label>
             <textarea name="body" value={form.body} onChange={handleChange} />
+          </div>
+          <div className="form-group">
+            <label>Status *</label>
+            <select name="status" value={form.status} onChange={handleChange}>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
           </div>
           <div className="form-group">
             <label>Samochód *</label>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getListing, patchListing } from '../api/listings'
 import { getMyCars } from '../api/cars'
+import { parseApiError } from '../utils/apiError'
 
 export default function ListingEditPage() {
   const { id } = useParams()
@@ -16,7 +17,7 @@ export default function ListingEditPage() {
     Promise.all([getListing(id), getMyCars()])
       .then(([listingRes, carsRes]) => {
         const l = listingRes.data
-        setForm({ title: l.title, price: l.price, body: l.body ?? '', status: l.status, carId: '' })
+        setForm({ title: l.title, localization: l.localization ?? '', price: l.price, body: l.body ?? '', status: l.status, carId: '' })
         setCars(carsRes.data)
       })
       .catch(() => setError('Nie udało się załadować danych'))
@@ -32,6 +33,7 @@ export default function ListingEditPage() {
     try {
       const payload = {}
       if (form.title) payload.title = form.title
+      if (form.localization) payload.localization = form.localization
       if (form.price) payload.price = Number(form.price)
       if (form.body) payload.body = form.body
       if (form.status) payload.status = form.status
@@ -39,7 +41,7 @@ export default function ListingEditPage() {
       await patchListing(id, payload)
       navigate(`/listing/${id}`)
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Błąd podczas zapisywania')
+      setError(parseApiError(err, 'Błąd podczas zapisywania'))
     } finally {
       setSaving(false)
     }
@@ -56,6 +58,10 @@ export default function ListingEditPage() {
           <div className="form-group">
             <label>Tytuł</label>
             <input name="title" value={form.title} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label>Lokalizacja</label>
+            <input name="localization" value={form.localization} onChange={handleChange} placeholder="np. Warszawa" />
           </div>
           <div className="form-group">
             <label>Cena (zł / dzień)</label>

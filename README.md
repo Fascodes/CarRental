@@ -68,7 +68,18 @@ ReservationStatus: PENDING | CONFIRMED | ACTIVE | CANCELLED | COMPLETED
 
 All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL native enum mapping.
 
+<<<<<<< Updated upstream
 ## Security Model
+=======
+```
+User          id, username, email, password(bcrypt), role(UserRole)
+Car           id, owner→User, brand, model, modelYear, vin(17), seatNumber,
+              gearboxType(GearboxType), horsePower, avgLiters(numeric 3,2), info(text)
+Listing       id, car→Car, user→User(owner), price(int), status(ListingStatus),
+              title, localization, body(text), createdAt, lastActive
+Reservation   id, listing→Listing, owner→User, renter→User,
+              status(ReservationStatus), dateStart, dateEnd, createdAt
+>>>>>>> Stashed changes
 
 - `POST /api/auth/**` — public (permitAll)
 - All other endpoints — require JWT (`Authorization: Bearer <token>`)
@@ -118,6 +129,7 @@ All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL na
 | GET | `/{id}` | Authenticated | `ListingResponse` | INACTIVE listings: NOT_FOUND unless owner |
 | PATCH | `/{id}` | Owner | `ListingResponse` | NOT_FOUND if not owner; nullable patch |
 
+<<<<<<< Updated upstream
 **Caching:**
 - `getListing` → `@Cacheable(value="listing", key="#listingId", unless="#result.status.name()!='ACTIVE'")`
 - `updateListing` → `@CacheEvict(value="listing", key="#listingId")`
@@ -131,6 +143,49 @@ All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL na
 - Optional: `priceAtMost(priceMax)`, `hasBrand(brand)`
 
 TODO: listings ACTIVE for 30 days maximum (scheduling not yet implemented)
+=======
+**AddListingRequest** (POST /add):
+```json
+{
+  "carId",
+  "title",
+  "localization",  // required — letters and hyphens only (Unicode, e.g. "Warszawa", "Krakow")
+  "price",
+  "body",
+  "status": "ACTIVE"|"INACTIVE"
+}
+```
+
+**UpdateListingRequest** (PATCH /{id}) — all nullable:
+```json
+{
+  "carId"?,
+  "title"?,
+  "localization"?,  // letters and hyphens only if provided
+  "price"?,
+  "body"?,
+  "status"?
+}
+```
+
+**ListingResponse** (GET /my, GET /filter, PATCH response):
+```json
+{ "id", "title", "localization", "price", "brand", "model", "modelYear", "gearboxType", "status" }
+```
+
+**ListingDetailResponse** (GET /{id} — full detail view):
+```json
+{
+  "id", "title", "localization", "body", "price", "status", "ownerUsername",
+  "brand", "model", "modelYear", "gearboxType", "vin",
+  "seatNumber", "horsePower", "avgLiters", "info"
+}
+```
+
+**Caching:** GET /{id} cached in `"listing"` cache by listingId — only when status = ACTIVE. PATCH evicts.
+
+---
+>>>>>>> Stashed changes
 
 ### Reservation — `/api/reservation`
 | Method | Path | Access | Returns | Notes |
@@ -170,7 +225,24 @@ existsByListingIdAndStatusIn(Long listingId, List<ReservationStatus> statuses)
 
 ## Test Structure
 
+<<<<<<< Updated upstream
 All tests require Docker test DB on port 5433 (db-test container).
+=======
+**ReservationResponse** (all reservation endpoints):
+```json
+{
+  "id",
+  "listingId",
+  "listingTitle",
+  "listingLocalization",
+  "status": "PENDING"|"RENTER_CONFIRMED"|"CONFIRMED"|"ACTIVE"|"CANCELLED"|"COMPLETED",
+  "dateStart",   // ISO datetime
+  "dateEnd",     // ISO datetime
+  "ownerUsername",
+  "renterUsername"
+}
+```
+>>>>>>> Stashed changes
 
 | File | Type | Coverage |
 |---|---|---|

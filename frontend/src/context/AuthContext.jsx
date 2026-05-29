@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
 
   const user = token ? decodeToken(token) : null
   const role = user?.role ?? null
+  const username = user?.username ?? null
 
   const loginCtx = useCallback((newToken) => {
     localStorage.setItem('token', newToken)
@@ -28,7 +29,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ token, user, role, login: loginCtx, logout: logoutCtx }}>
+    <AuthContext.Provider value={{ token, user, role, username, login: loginCtx, logout: logoutCtx }}>
       {children}
     </AuthContext.Provider>
   )

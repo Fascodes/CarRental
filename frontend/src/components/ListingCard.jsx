@@ -10,6 +10,9 @@ export default function ListingCard({ listing }) {
       <div className="meta">
         {listing.brand} {listing.model} · {listing.modelYear} · {listing.gearboxType}
       </div>
+      {listing.localization && (
+        <div className="meta" style={{ marginTop: '0.25rem' }}>📍 {listing.localization}</div>
+      )}
     </div>
   )
 }

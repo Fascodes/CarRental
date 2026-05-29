@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getCar, patchCarAdmin } from '../api/cars'
+import { parseApiError } from '../utils/apiError'
 
 export default function AdminCarDetailPage() {
   const { id } = useParams()
@@ -47,7 +48,7 @@ export default function AdminCarDetailPage() {
       })
       setSaved(true)
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Błąd podczas zapisywania')
+      setError(parseApiError(err, 'Błąd podczas zapisywania'))
     } finally {
       setSaving(false)
     }

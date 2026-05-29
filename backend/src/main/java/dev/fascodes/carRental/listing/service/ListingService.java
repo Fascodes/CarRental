@@ -118,6 +118,7 @@ public class ListingService {
             listing.setCar(car);
         }
         if (request.getTitle() != null) listing.setTitle(request.getTitle());
+        if (request.getLocalization() != null) listing.setLocalization(request.getLocalization());
         if (request.getPrice() != null) listing.setPrice(request.getPrice());
         if (request.getBody() != null) listing.setBody(request.getBody());
         if (request.getStatus() != null) listing.setStatus(request.getStatus());

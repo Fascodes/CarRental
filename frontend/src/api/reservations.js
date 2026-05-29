@@ -2,6 +2,7 @@ import api from './axiosInstance'
 
 export const createReservation = (data) => api.post('/api/reservation', data)
 export const confirmReservation = (id) => api.post(`/api/reservation/${id}/confirm`)
+export const ownerConfirmReservation = (id) => api.post(`/api/reservation/${id}/owner-confirm`)
 export const patchReservationAdmin = (id, data) => api.patch(`/api/reservation/${id}/admin`, data)
 export const cancelReservation = (id) => api.patch(`/api/reservation/cancel/${id}`)
 export const getOwnerReservations = (params) => api.get('/api/reservation/my/owner', { params })

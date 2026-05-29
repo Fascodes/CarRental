@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getReservation, patchReservationAdmin } from '../api/reservations'
 import { formatDate } from '../utils/date'
 
-const STATUSES = ['PENDING', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
+const STATUSES = ['PENDING', 'RENTER_CONFIRMED', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
 
 const statusClass = {
   PENDING: 'badge-pending',
+  RENTER_CONFIRMED: 'badge-renter-confirmed',
   CONFIRMED: 'badge-confirmed',
   ACTIVE: 'badge-renting',
   CANCELLED: 'badge-cancelled',
@@ -62,8 +63,8 @@ export default function AdminReservationDetailPage() {
         <div className="detail-grid">
           <div className="field"><label>Data od</label><p>{formatDate(res.dateStart)}</p></div>
           <div className="field"><label>Data do</label><p>{formatDate(res.dateEnd)}</p></div>
-          <div className="field"><label>Właściciel</label><p>{res.ownerEmail}</p></div>
-          <div className="field"><label>Najemca</label><p>{res.renterEmail}</p></div>
+          <div className="field"><label>Właściciel</label><p>{res.ownerUsername}</p></div>
+          <div className="field"><label>Najemca</label><p>{res.renterUsername}</p></div>
         </div>
 
         <div className="form-group" style={{ marginTop: '1.5rem', maxWidth: 260 }}>

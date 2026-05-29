@@ -38,6 +38,8 @@ public class Listing {
 
     private String title;
 
+    private String localization;
+
     @Column(columnDefinition = "text")
     private String body;
 

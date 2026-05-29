@@ -4,11 +4,12 @@ import { getListing, deleteListing } from '../api/listings'
 import { createReservation } from '../api/reservations'
 import { useAuth } from '../context/AuthContext'
 import { formatDate } from '../utils/date'
+import { parseApiError } from '../utils/apiError'
 
 export default function ListingDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user, token } = useAuth()
+  const { username, token } = useAuth()
   const [listing, setListing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -16,7 +17,6 @@ export default function ListingDetailPage() {
   const [resForm, setResForm] = useState({ dateStart: '', dateEnd: '' })
   const [resError, setResError] = useState('')
   const [resLoading, setResLoading] = useState(false)
-  const [resSuccess, setResSuccess] = useState(false)
 
   useEffect(() => {
     getListing(id)
@@ -25,7 +25,7 @@ export default function ListingDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  const isOwner = user?.sub === listing?.ownerEmail
+  const isOwner = username != null && username === listing?.ownerUsername
 
   const handleDelete = async () => {
     if (!confirm('Czy na pewno chcesz usunąć ten listing?')) return
@@ -42,11 +42,10 @@ export default function ListingDetailPage() {
     setResError('')
     setResLoading(true)
     try {
-      await createReservation({ listingId: Number(id), dateStart: resForm.dateStart, dateEnd: resForm.dateEnd })
-      setResSuccess(true)
-      setShowReserve(false)
+      const res = await createReservation({ listingId: Number(id), dateStart: resForm.dateStart, dateEnd: resForm.dateEnd })
+      navigate(`/panel/reservations/${res.data.id}`, { state: { role: 'renter' } })
     } catch (err) {
-      setResError(err.response?.data?.message ?? 'Błąd podczas rezerwacji')
+      setResError(parseApiError(err, 'Błąd podczas składania rezerwacji'))
     } finally {
       setResLoading(false)
     }
@@ -73,6 +72,8 @@ export default function ListingDetailPage() {
         )}
 
         <div className="detail-grid">
+          <div className="field"><label>Lokalizacja</label><p>{listing.localization}</p></div>
+          <div className="field"><label>Właściciel</label><p>{listing.ownerUsername}</p></div>
           <div className="field"><label>Marka</label><p>{listing.brand}</p></div>
           <div className="field"><label>Model</label><p>{listing.model}</p></div>
           <div className="field"><label>Rok</label><p>{listing.modelYear}</p></div>
@@ -80,7 +81,6 @@ export default function ListingDetailPage() {
           <div className="field"><label>Miejsca</label><p>{listing.seatNumber}</p></div>
           <div className="field"><label>KM</label><p>{listing.horsePower}</p></div>
           <div className="field"><label>Spalanie</label><p>{listing.avgLiters} l/100km</p></div>
-          <div className="field"><label>Właściciel</label><p>{listing.ownerEmail}</p></div>
         </div>
 
         {listing.body && (
@@ -99,8 +99,6 @@ export default function ListingDetailPage() {
             </button>
           </div>
         )}
-
-        {resSuccess && <div className="alert alert-success" style={{ marginTop: '1rem' }}>Rezerwacja złożona pomyślnie!</div>}
 
         {showReserve && (
           <div className="reserve-form">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { addCar } from '../api/cars'
+import { parseApiError } from '../utils/apiError'
 
 const INITIAL = {
   brand: '', model: '', modelYear: '', vin: '',
@@ -29,7 +30,7 @@ export default function CarAddPage() {
       })
       navigate('/panel/cars')
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Błąd podczas dodawania samochodu')
+      setError(parseApiError(err, 'Błąd podczas dodawania samochodu'))
     } finally {
       setLoading(false)
     }

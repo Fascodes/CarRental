@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { getAdminReservations } from '../api/reservations'
 import { formatDate } from '../utils/date'
 
-const STATUSES = ['', 'PENDING', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
+const STATUSES = ['', 'PENDING', 'RENTER_CONFIRMED', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
 
 const statusClass = {
   PENDING: 'badge-pending',
+  RENTER_CONFIRMED: 'badge-renter-confirmed',
   CONFIRMED: 'badge-confirmed',
   ACTIVE: 'badge-renting',
   CANCELLED: 'badge-cancelled',
@@ -81,7 +82,7 @@ export default function AdminReservationsPage() {
               <div className="res-meta">
                 {formatDate(r.dateStart)} – {formatDate(r.dateEnd)}
               </div>
-              <div className="res-meta">Właściciel: {r.ownerEmail} · Najemca: {r.renterEmail}</div>
+              <div className="res-meta">Właściciel: {r.ownerUsername} · Najemca: {r.renterUsername}</div>
               <span className={`status-badge ${statusClass[r.status] ?? ''}`}>{r.status}</span>
             </div>
           ))}

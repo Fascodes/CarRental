@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getOwnerReservations, confirmReservation } from '../api/reservations'
+import { getOwnerReservations } from '../api/reservations'
 import ReservationCard from '../components/ReservationCard'
 
-const STATUSES = ['', 'PENDING', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
+const STATUSES = ['', 'PENDING', 'RENTER_CONFIRMED', 'CONFIRMED', 'ACTIVE', 'CANCELLED', 'COMPLETED']
 
 export default function OwnerReservationsPage() {
   const [reservations, setReservations] = useState([])
@@ -22,15 +22,6 @@ export default function OwnerReservationsPage() {
 
   useEffect(() => { fetchReservations() }, [fetchReservations])
 
-  const handleConfirm = async (id, e) => {
-    e.stopPropagation()
-    try {
-      await confirmReservation(id)
-      fetchReservations()
-    } catch {
-      setError('Nie udało się potwierdzić rezerwacji')
-    }
-  }
 
   return (
     <div className="page">
@@ -56,19 +47,7 @@ export default function OwnerReservationsPage() {
       ) : (
         <div className="res-list">
           {reservations.map((r) => (
-            <div key={r.id}>
-              <ReservationCard reservation={r} showRenter />
-              {r.status === 'PENDING' && (
-                <div style={{ marginTop: '-0.25rem', marginBottom: '0.5rem', paddingLeft: '1rem' }}>
-                  <button
-                    className="btn btn-success btn-sm"
-                    onClick={(e) => handleConfirm(r.id, e)}
-                  >
-                    Potwierdź
-                  </button>
-                </div>
-              )}
-            </div>
+            <ReservationCard key={r.id} reservation={r} showRenter role="owner" />
           ))}
         </div>
       )}

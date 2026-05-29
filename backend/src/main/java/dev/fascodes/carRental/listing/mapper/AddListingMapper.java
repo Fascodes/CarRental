@@ -19,6 +19,7 @@ public class AddListingMapper {
         listing.setCar(car);
         listing.setPrice(request.getPrice());
         listing.setTitle(request.getTitle());
+        listing.setLocalization(request.getLocalization());
         listing.setBody(request.getBody());
         listing.setStatus(ListingStatus.ACTIVE);
         listing.setCreatedAt(LocalDateTime.now());
