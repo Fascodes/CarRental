@@ -46,15 +46,19 @@ cd backend
 mvn spring-boot:run
 ```
 
-Zmienne środowiskowe (plik `.env` w katalogu głównym):
-```
-DB_PORT=5432
-POSTGRES_DB=carRental
-POSTGRES_USER=...
-POSTGRES_PASSWORD=...
-RABBITMQ_USER=...
-RABBITMQ_PASS=...
-JWT_SECRET=...
+Utwórz plik `.env` w katalogu głównym projektu (obok `docker-compose.yaml`):
+
+```env
+DB_PORT=5555
+
+POSTGRES_PASSWORD=mypgpassword21
+POSTGRES_DB=pgdb
+POSTGRES_USER=mypguser1
+
+JWT_SECRET=moj_bardzo_dlugi_i_bezpieczny_sekret_32znaki
+
+RABBITMQ_USER=admin
+RABBITMQ_PASS=admin
 ```
 
 > **Reset bazy danych** (wymagany po zmianie schematu): `docker compose down -v && docker compose up -d`
