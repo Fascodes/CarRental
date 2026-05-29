@@ -4,6 +4,7 @@ import dev.fascodes.carRental.car.model.Car;
 import dev.fascodes.carRental.car.repository.CarRepository;
 import dev.fascodes.carRental.listing.dto.AddListingRequest;
 import dev.fascodes.carRental.listing.dto.AddListingResponse;
+import dev.fascodes.carRental.listing.dto.ListingDetailResponse;
 import dev.fascodes.carRental.listing.dto.ListingResponse;
 import dev.fascodes.carRental.listing.dto.UpdateListingRequest;
 import dev.fascodes.carRental.listing.mapper.AddListingMapper;
@@ -84,13 +85,13 @@ public class ListingService {
 
     @Cacheable(value = "listing", key = "#listingId", unless = "#result.status.name() != 'ACTIVE'")
     @Transactional(readOnly = true)
-    public ListingResponse getListing(Long listingId, String email) {
+    public ListingDetailResponse getListing(Long listingId, String email) {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (listing.getStatus() == ListingStatus.INACTIVE && !listing.getUser().getEmail().equals(email)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        return listingMapper.toResponse(listing);
+        return listingMapper.toDetailResponse(listing);
     }
 
     @Transactional(readOnly = true)

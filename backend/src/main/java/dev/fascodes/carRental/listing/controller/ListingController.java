@@ -3,6 +3,7 @@ package dev.fascodes.carRental.listing.controller;
 import dev.fascodes.carRental.common.security.AuthenticatedUser;
 import dev.fascodes.carRental.listing.dto.AddListingRequest;
 import dev.fascodes.carRental.listing.dto.AddListingResponse;
+import dev.fascodes.carRental.listing.dto.ListingDetailResponse;
 import dev.fascodes.carRental.listing.dto.ListingResponse;
 import dev.fascodes.carRental.listing.dto.UpdateListingRequest;
 import dev.fascodes.carRental.listing.model.ListingStatus;
@@ -56,8 +57,8 @@ public class ListingController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ListingResponse> getListing(@PathVariable Long id,
-                                                      @AuthenticationPrincipal AuthenticatedUser user) {
+    public ResponseEntity<ListingDetailResponse> getListing(@PathVariable Long id,
+                                                            @AuthenticationPrincipal AuthenticatedUser user) {
         return ResponseEntity.ok(listingService.getListing(id, user.email()));
     }
 

@@ -1,5 +1,6 @@
 CREATE TYPE "reservations_status" AS ENUM (
   'PENDING',
+  'RENTER_CONFIRMED',
   'CONFIRMED',
   'ACTIVE',
   'CANCELLED',

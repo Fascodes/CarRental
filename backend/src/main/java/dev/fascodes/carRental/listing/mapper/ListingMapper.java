@@ -1,5 +1,6 @@
 package dev.fascodes.carRental.listing.mapper;
 
+import dev.fascodes.carRental.listing.dto.ListingDetailResponse;
 import dev.fascodes.carRental.listing.dto.ListingResponse;
 import dev.fascodes.carRental.listing.model.Listing;
 import org.springframework.stereotype.Component;
@@ -22,8 +23,6 @@ public class ListingMapper {
         response.setStatus(listing.getStatus());
         return response;
     }
-<<<<<<< Updated upstream
-=======
 
     public ListingDetailResponse toDetailResponse(Listing listing) {
         ListingDetailResponse response = new ListingDetailResponse();
@@ -45,5 +44,4 @@ public class ListingMapper {
         response.setInfo(listing.getCar().getInfo());
         return response;
     }
->>>>>>> Stashed changes
 }

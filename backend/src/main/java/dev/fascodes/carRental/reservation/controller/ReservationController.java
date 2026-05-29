@@ -6,6 +6,7 @@ import dev.fascodes.carRental.reservation.dto.PatchReservationStatusRequest;
 import dev.fascodes.carRental.reservation.dto.ReservationResponse;
 import dev.fascodes.carRental.reservation.model.ReservationStatus;
 import dev.fascodes.carRental.reservation.service.ReservationService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,15 +25,21 @@ public class ReservationController {
     }
 
     @PostMapping
-    public ResponseEntity<ReservationResponse> addReservation(@RequestBody AddReservationRequest request,
+    public ResponseEntity<ReservationResponse> addReservation(@Valid @RequestBody AddReservationRequest request,
                                                               @AuthenticationPrincipal AuthenticatedUser user) {
         return ResponseEntity.ok(reservationService.addReservation(request, user.email()));
     }
 
     @PostMapping("/{id}/confirm")
-    public ResponseEntity<ReservationResponse> confirmReservation(@PathVariable Long id,
-                                                                  @AuthenticationPrincipal AuthenticatedUser user) {
-        return ResponseEntity.ok(reservationService.confirmReservation(id, user.email()));
+    public ResponseEntity<ReservationResponse> renterConfirmReservation(@PathVariable Long id,
+                                                                        @AuthenticationPrincipal AuthenticatedUser user) {
+        return ResponseEntity.ok(reservationService.renterConfirmReservation(id, user.email()));
+    }
+
+    @PostMapping("/{id}/owner-confirm")
+    public ResponseEntity<ReservationResponse> ownerConfirmReservation(@PathVariable Long id,
+                                                                       @AuthenticationPrincipal AuthenticatedUser user) {
+        return ResponseEntity.ok(reservationService.ownerConfirmReservation(id, user.email()));
     }
 
     @GetMapping("/{id}")
