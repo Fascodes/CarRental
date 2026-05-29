@@ -68,7 +68,6 @@ ReservationStatus: PENDING | CONFIRMED | ACTIVE | CANCELLED | COMPLETED
 
 All enum columns use `@JdbcType(PostgreSQLEnumJdbcType.class)` for PostgreSQL native enum mapping.
 
-<<<<<<< Updated upstream
 ## Security Model
 =======
 ```
@@ -79,7 +78,6 @@ Listing       id, car→Car, user→User(owner), price(int), status(ListingStatu
               title, localization, body(text), createdAt, lastActive
 Reservation   id, listing→Listing, owner→User, renter→User,
               status(ReservationStatus), dateStart, dateEnd, createdAt
->>>>>>> Stashed changes
 
 - `POST /api/auth/**` — public (permitAll)
 - All other endpoints — require JWT (`Authorization: Bearer <token>`)
@@ -129,7 +127,6 @@ Reservation   id, listing→Listing, owner→User, renter→User,
 | GET | `/{id}` | Authenticated | `ListingResponse` | INACTIVE listings: NOT_FOUND unless owner |
 | PATCH | `/{id}` | Owner | `ListingResponse` | NOT_FOUND if not owner; nullable patch |
 
-<<<<<<< Updated upstream
 **Caching:**
 - `getListing` → `@Cacheable(value="listing", key="#listingId", unless="#result.status.name()!='ACTIVE'")`
 - `updateListing` → `@CacheEvict(value="listing", key="#listingId")`
@@ -185,7 +182,6 @@ TODO: listings ACTIVE for 30 days maximum (scheduling not yet implemented)
 **Caching:** GET /{id} cached in `"listing"` cache by listingId — only when status = ACTIVE. PATCH evicts.
 
 ---
->>>>>>> Stashed changes
 
 ### Reservation — `/api/reservation`
 | Method | Path | Access | Returns | Notes |
@@ -225,7 +221,6 @@ existsByListingIdAndStatusIn(Long listingId, List<ReservationStatus> statuses)
 
 ## Test Structure
 
-<<<<<<< Updated upstream
 All tests require Docker test DB on port 5433 (db-test container).
 =======
 **ReservationResponse** (all reservation endpoints):
@@ -242,7 +237,6 @@ All tests require Docker test DB on port 5433 (db-test container).
   "renterUsername"
 }
 ```
->>>>>>> Stashed changes
 
 | File | Type | Coverage |
 |---|---|---|

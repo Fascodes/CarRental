@@ -1,7 +1,9 @@
 package dev.fascodes.carRental.reservation.service;
 
+import dev.fascodes.carRental.common.config.RabbitConfig;
 import dev.fascodes.carRental.listing.model.Listing;
 import dev.fascodes.carRental.listing.repository.ListingRepository;
+import dev.fascodes.carRental.notification.ReservationNotificationEvent;
 import dev.fascodes.carRental.reservation.dto.AddReservationRequest;
 import dev.fascodes.carRental.reservation.dto.ReservationResponse;
 import dev.fascodes.carRental.reservation.mapper.ReservationMapper;
@@ -10,6 +12,7 @@ import dev.fascodes.carRental.reservation.model.ReservationStatus;
 import dev.fascodes.carRental.reservation.repository.ReservationRepository;
 import dev.fascodes.carRental.user.model.User;
 import dev.fascodes.carRental.user.repository.UserRepository;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +27,15 @@ public class ReservationService {
     private final ReservationMapper reservationMapper;
     private final ListingRepository listingRepository;
     private final UserRepository userRepository;
+    private final AmqpTemplate amqpTemplate;
 
     public ReservationService(ReservationRepository reservationRepository, ReservationMapper reservationMapper,
-                              ListingRepository listingRepository, UserRepository userRepository) {
+                              ListingRepository listingRepository, UserRepository userRepository, AmqpTemplate amqpTemplate) {
         this.reservationRepository = reservationRepository;
         this.reservationMapper = reservationMapper;
         this.listingRepository = listingRepository;
         this.userRepository = userRepository;
+        this.amqpTemplate = amqpTemplate;
     }
 
     @Transactional
@@ -90,6 +95,17 @@ public class ReservationService {
                 reservation.getDateEnd(),
                 reservationId);
 
+        amqpTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ROUTING_KEY,
+                new ReservationNotificationEvent(
+                        reservation.getId(),
+                        reservation.getOwner().getEmail(),
+                        reservation.getOwner().getUsername(),
+                        reservation.getListing().getTitle(),
+                        reservation.getDateStart().toString(),
+                        reservation.getDateEnd().toString(),
+                        "RENTER_CONFIRMED"
+                ));
+
         return reservationMapper.toResponse(reservation);
     }
 
@@ -107,6 +123,18 @@ public class ReservationService {
         }
 
         reservation.setStatus(ReservationStatus.CONFIRMED);
+
+        amqpTemplate.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.ROUTING_KEY,
+                new ReservationNotificationEvent(
+                        reservation.getId(),
+                        reservation.getRenter().getEmail(),
+                        reservation.getRenter().getUsername(),
+                        reservation.getListing().getTitle(),
+                        reservation.getDateStart().toString(),
+                        reservation.getDateEnd().toString(),
+                        "CONFIRMED"
+                ));
+
         return reservationMapper.toResponse(reservation);
     }
 
