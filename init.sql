@@ -70,7 +70,7 @@ CREATE TABLE "cars" (
   "addtional_information" text
 );
 
-CREATE TABLE notifications (
+CREATE TABLE "notifications" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "user_email" varchar NOT NULL,
   "message" varchar NOT NULL,
