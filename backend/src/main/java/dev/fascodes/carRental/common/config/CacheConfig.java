@@ -2,11 +2,23 @@ package dev.fascodes.carRental.common.config;
 
 
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+
+import java.time.Duration;
 
 @Configuration
 @EnableCaching
 public class CacheConfig {
+    @Bean
+    RedisCacheManager cacheManager(RedisConnectionFactory factory){
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(60));
+
+        return RedisCacheManager.builder(factory).build();
+    }
 }
 
-// TODO: Change the caching to Redis instead of current Spring Boot native
