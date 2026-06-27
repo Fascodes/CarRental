@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigInteger;
-
+// TODO: in the future add a photo order and primary photo functionality
 @Getter
 @Setter
 public class Image {
