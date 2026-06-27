@@ -11,8 +11,8 @@ carRental/
 ├── backend/            Aplikacja Spring Boot (Java 25, Maven)
 ├── frontend/           Aplikacja React (Vite, React Router, Axios)
 ├── docker-compose.yaml Środowisko deweloperskie (PostgreSQL + RabbitMQ)
-├── init.sql            Schemat bazy danych
-├── seeding.sql         Dane testowe (tylko środowisko dev)
+├── V1__schema.sql            Schemat bazy danych
+├── V2__seed.sql         Dane testowe (tylko środowisko dev)
 └── README.md
 ```
 
