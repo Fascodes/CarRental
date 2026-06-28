@@ -115,7 +115,7 @@ public class ImageService {
                     .stream(
                             file.getInputStream(),
                             file.getSize(),
-                            -1
+                            (long) -1
                     )
                     .contentType(file.getContentType())
                     .build()
