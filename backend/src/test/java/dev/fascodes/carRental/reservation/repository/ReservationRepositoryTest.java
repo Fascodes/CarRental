@@ -11,11 +11,11 @@ import dev.fascodes.carRental.reservation.model.ReservationStatus;
 import dev.fascodes.carRental.user.model.User;
 import dev.fascodes.carRental.user.model.UserRole;
 import dev.fascodes.carRental.user.repository.UserRepository;
+import dev.fascodes.carRental.util.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,9 +23,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// Requires test DB (Docker: db-test on port 5433)
-@SpringBootTest
-class ReservationRepositoryTest {
+// Spins up a Postgres Testcontainer (see AbstractIntegrationTest); no manually-started DB required.
+class ReservationRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired private ReservationRepository reservationRepository;
     @Autowired private UserRepository userRepository;

@@ -3,14 +3,18 @@ package dev.fascodes.carRental.car.controller;
 import dev.fascodes.carRental.car.dto.CarDetailResponse;
 import dev.fascodes.carRental.car.dto.CarResponse;
 import dev.fascodes.carRental.car.service.CarService;
+import dev.fascodes.carRental.common.config.SecurityConfig;
+import dev.fascodes.carRental.common.security.JwtAuthenticationFilter;
+import dev.fascodes.carRental.common.security.WithMockAuthenticatedUser;
+import dev.fascodes.carRental.common.utility.JwtUtil;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import dev.fascodes.carRental.common.security.WithMockAuthenticatedUser;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -19,13 +23,18 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Requires test DB (Docker: db-test on port 5433)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
+// Web-layer slice: only the controller + security chain are loaded. The service is mocked,
+// so no database, RabbitMQ or other infrastructure is required.
+@WebMvcTest(CarController.class)
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class})
 class CarControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean CarService carService;
+
+    // Collaborators pulled in by SecurityConfig; mocked because no real DB/JWT is wired in the slice.
+    @MockitoBean JwtUtil jwtUtil;
+    @MockitoBean UserDetailsService userDetailsService;
 
     // --- GET /my ---
 
