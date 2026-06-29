@@ -7,6 +7,8 @@ import lombok.Setter;
 
 import java.math.BigInteger;
 // TODO: in the future add a photo order and primary photo functionality
+@Entity
+@Table(name="storage")
 @Getter
 @Setter
 public class Image {
@@ -16,7 +18,6 @@ public class Image {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="car_id", nullable = false)
-    @Column(name="car_id")
     Car car;
 
     @Column(name="storage_key")

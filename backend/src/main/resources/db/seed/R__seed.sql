@@ -203,28 +203,28 @@ INSERT INTO reservations (listing_id, owner_id, renter_id, status, date_start, d
   );
 
 -- alice wynajmuje Skodę od Marcinka (CANCELLED)
-INSERT INTO reservations (listing_id, owner_id, renter_id, status, date_start, date_end, created_at) VALUES
-  (
-    (SELECT id FROM listings WHERE title = 'Skoda Octavia diesel — tania w eksploatacji'),
-    (SELECT id FROM users WHERE email = 'marcin.lukasz@student.pk.edu.pl'),
-    (SELECT id FROM users WHERE email = 'alice@dev.local'),
-    'CANCELLED',
-    NOW() - INTERVAL '10 days',
-    NOW() - INTERVAL '8 days',
-    NOW() - INTERVAL '15 days'
-  );
+-- INSERT INTO reservations (listing_id, owner_id, renter_id, status, date_start, date_end, created_at) VALUES
+--   (
+--     (SELECT id FROM listings WHERE title = 'Skoda Octavia diesel — tania w eksploatacji'),
+--     (SELECT id FROM users WHERE email = 'marcin.lukasz@student.pk.edu.pl'),
+--     (SELECT id FROM users WHERE email = 'alice@dev.local'),
+--     'CANCELLED',
+--     NOW() - INTERVAL '10 days',
+--     NOW() - INTERVAL '8 days',
+--     NOW() - INTERVAL '15 days'
+--   );
 
 -- charlie wynajmuje Hondę Civic od alice (RENTER_CONFIRMED)
-INSERT INTO reservations (listing_id, owner_id, renter_id, status, date_start, date_end, created_at) VALUES
-  (
-    (SELECT id FROM listings WHERE title = 'Honda Civic — nowoczesna i dynamiczna'),
-    (SELECT id FROM users WHERE email = 'alice@dev.local'),
-    (SELECT id FROM users WHERE email = 'charlie@dev.local'),
-    'RENTER_CONFIRMED',
-    NOW() + INTERVAL '2 days',
-    NOW() + INTERVAL '5 days',
-    NOW() - INTERVAL '2 days'
-  );
+-- INSERT INTO reservations (listing_id, owner_id, renter_id, status, date_start, date_end, created_at) VALUES
+--   (
+--     (SELECT id FROM listings WHERE title = 'Honda Civic — nowoczesna i dynamiczna'),
+--     (SELECT id FROM users WHERE email = 'alice@dev.local'),
+--     (SELECT id FROM users WHERE email = 'charlie@dev.local'),
+--     'RENTER_CONFIRMED',
+--     NOW() + INTERVAL '2 days',
+--     NOW() + INTERVAL '5 days',
+--     NOW() - INTERVAL '2 days'
+--   );
 
 -- Marcinek wynajmuje Forda Focus od boba (COMPLETED, przeszłość)
 INSERT INTO reservations (listing_id, owner_id, renter_id, status, date_start, date_end, created_at) VALUES

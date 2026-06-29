@@ -68,6 +68,12 @@ public class ReservationService {
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
+        if (reservation.getStatus() == ReservationStatus.CANCELLED) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Reservation has already been cancelled");
+        }
+
         if (reservation.getStatus() != ReservationStatus.PENDING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation is not PENDING");
         }
@@ -94,10 +100,19 @@ public class ReservationService {
                 reservation.getDateEnd(), reservation.getDateStart());
 
         if (hasConflict) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Date range already confirmed");
+            reservation.setStatus(ReservationStatus.CANCELLED);
+            reservationRepository.flush();
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Date range already confirmed"
+            );
         }
 
+
         reservation.setStatus(ReservationStatus.RENTER_CONFIRMED);
+        reservationRepository.flush();
+
 
         reservationRepository.cancelOverlappingPending(
                 reservation.getListing().getId(),
