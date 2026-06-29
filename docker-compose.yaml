@@ -1,4 +1,21 @@
 services:
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin12345
+    volumes:
+      - minio_data:/data
+
+  redis:
+    image: redis:8
+    ports:
+      - "6379:6379"
+
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -22,23 +39,20 @@ services:
       - pg-network
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./seeding.sql:/docker-entrypoint-initdb.d/seeding.sql
 
-  db-test:
-    image: postgres:16
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: carRentalTest
-      POSTGRES_USER: test
-    networks:
-      - pg-network
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  # db-test:
+  #   image: postgres:16
+  #   ports:
+  #     - "5433:5432"
+  #   environment:
+  #     POSTGRES_PASSWORD: test
+  #     POSTGRES_DB: carRentalTest
+  #     POSTGRES_USER: test
+  #   networks:
+  #     - pg-network
 
 networks:
   pg-network:
 volumes:
   postgres_data:
+  minio_data:

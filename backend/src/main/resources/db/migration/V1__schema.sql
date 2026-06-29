@@ -66,7 +66,7 @@ CREATE TABLE "cars" (
   "seat_number" integer,
   "gearbox" gearbox_type,
   "horse_power" integer,
-  "avg_liters_per_hundred_km" numeric(3,2),
+  "avg_liters_per_hundred_km" numeric(5,2),
   "addtional_information" text
 );
 
