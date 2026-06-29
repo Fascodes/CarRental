@@ -1,4 +1,4 @@
-package dev.fascodes.carRental.ReservationTests;
+package dev.fascodes.carRental.reservation.integrationTests;
 
 import dev.fascodes.carRental.car.model.Car;
 import dev.fascodes.carRental.car.model.GearboxType;
@@ -13,12 +13,12 @@ import dev.fascodes.carRental.reservation.service.ReservationService;
 import dev.fascodes.carRental.user.model.User;
 import dev.fascodes.carRental.user.model.UserRole;
 import dev.fascodes.carRental.user.repository.UserRepository;
+import dev.fascodes.carRental.util.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
@@ -27,8 +27,7 @@ import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 // Requires test DB (Docker: db-test on port 5433) + RabbitMQ running
-@SpringBootTest
-public class ReservationServiceTests {
+public class RaceConditionTest extends AbstractIntegrationTest {
 
     @MockitoBean AmqpTemplate amqpTemplate;
 
@@ -126,25 +125,47 @@ public class ReservationServiceTests {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch latch = new CountDownLatch(1);
 
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+
         Future<Object> request1 = executor.submit(() -> {
-            latch.await();
+            ready.countDown();
+            start.await();
             return reservationService.renterConfirmReservation(reservation1Id, renter1Email);
         });
 
         Future<Object> request2 = executor.submit(() -> {
-            latch.await();
+            ready.countDown();
+            start.await();
             return reservationService.renterConfirmReservation(reservation2Id, renter2Email);
         });
 
-        latch.countDown();
+        ready.await();
+        start.countDown();
         executor.shutdown();
-        executor.awaitTermination(10, TimeUnit.SECONDS);
+        assertTrue(
+                executor.awaitTermination(10, TimeUnit.SECONDS)
+        );
 
         int successCount = 0;
         int failCount = 0;
 
-        try { request1.get(); successCount++; } catch (ExecutionException e) { failCount++; }
-        try { request2.get(); successCount++; } catch (ExecutionException e) { failCount++; }
+        try {
+            request1.get();
+            successCount++;
+        } catch (ExecutionException e) {
+            e.getCause().printStackTrace();
+            failCount++;
+        }
+
+        try {
+            request2.get();
+            successCount++;
+        } catch (ExecutionException e) {
+            e.getCause().printStackTrace();
+            failCount++;
+        }
+
 
         assertEquals(1, successCount, "Exactly one renter confirm should succeed");
         assertEquals(1, failCount, "Exactly one renter confirm should fail");

@@ -40,18 +40,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  db-test:
-    image: postgres:16
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: carRentalTest
-      POSTGRES_USER: test
-    networks:
-      - pg-network
-    volumes:
-      - ./backend/src/main/resources/db/migration/V1__schema.sql:/docker-entrypoint-initdb.d/V1__schema.sql
+  # db-test:
+  #   image: postgres:16
+  #   ports:
+  #     - "5433:5432"
+  #   environment:
+  #     POSTGRES_PASSWORD: test
+  #     POSTGRES_DB: carRentalTest
+  #     POSTGRES_USER: test
+  #   networks:
+  #     - pg-network
 
 networks:
   pg-network:
